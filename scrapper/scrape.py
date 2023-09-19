@@ -4,9 +4,10 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+from scrapper.models import Video
+
 
 def scrape_url(video_url):
-    # video_url = "https://www.youtube.com/watch?v=aGOV5R7M1Js"
     prefix = "https://www.youtube.com/watch?v="
     # Configure Selenium options
     chrome_options = Options()
@@ -34,7 +35,7 @@ def scrape_url(video_url):
             if video_url is not None and video_url.startswith(prefix):
                 video_id = video_url[len(prefix) :]
                 print(video_id)
-                # TODO create an instance
+                Video.objects.update_or_create(video_id=video_id)
 
     except Exception as e:
         print(e)
@@ -42,3 +43,7 @@ def scrape_url(video_url):
     finally:
         # Close the webdriver
         driver.quit()
+
+
+video_url = "https://www.youtube.com/watch?v=aGOV5R7M1Js"
+scrape_url(video_url)

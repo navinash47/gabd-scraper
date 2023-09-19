@@ -3,17 +3,6 @@ from django.db import models
 
 
 class Channel(models.Model):
-    INITIALZED = "I"
-    SCRAPING = "S"
-    SCRAPED = "D"
-    FAILED = "F"
-    STATUS_CHOICES = [
-        (INITIALZED, "Initialized"),
-        (SCRAPING, "Scraping"),
-        (SCRAPED, "Scraped"),
-        (FAILED, "Failed"),
-    ]
-
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     channel_id = models.CharField(max_length=200)
@@ -29,20 +18,17 @@ class Channel(models.Model):
     hidden_subscriber_count = models.BooleanField(default=False)
     video_count = models.BigIntegerField(default=0)
 
-    status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=INITIALZED)
     updated_at = models.DateTimeField(auto_now=True)
 
 
 class Video(models.Model):
-    INITIALZED = "I"
-    SCRAPING = "S"
-    SCRAPED = "D"
-    FAILED = "F"
+    SCRAPED = "S"  # Got a video_id
+    DETAILED = "D"  # Used YouTube API to get details
+    FILTERED = "F"  # Used GPT-3 to filter brand deal links
     STATUS_CHOICES = [
-        (INITIALZED, "Initialized"),
-        (SCRAPING, "Scraping"),
         (SCRAPED, "Scraped"),
-        (FAILED, "Failed"),
+        (DETAILED, "Detailed"),
+        (FILTERED, "Filtered"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -64,14 +50,27 @@ class Video(models.Model):
     favorite_count = models.BigIntegerField(default=0)
     comment_count = models.BigIntegerField(default=0)
 
-    status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=INITIALZED)
+    status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=SCRAPED)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def __str__(self):
+        return f"{self.video_id} - {self.title}"
 
-class BrandDealLink(models.Model):
+
+class Brand(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    domain = models.CharField(max_length=200)
+    name = models.CharField(max_length=200)
+
+
+class BrandDeal(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    brand = models.ForeignKey(
+        Brand, on_delete=models.CASCADE, related_name="brand_deals"
+    )
     video = models.ForeignKey(
-        Video, on_delete=models.CASCADE, related_name="brand_deal_links"
+        Video, on_delete=models.CASCADE, related_name="brand_deals"
     )
 
     url = models.URLField()

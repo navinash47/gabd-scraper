@@ -1,3 +1,8 @@
 from django.contrib import admin
 
-# Register your models here.
+from scrapper.models import Channel, Video, Brand, BrandDeal
+
+admin.site.register(Channel)
+admin.site.register(Video)
+admin.site.register(Brand)
+admin.site.register(BrandDeal)
