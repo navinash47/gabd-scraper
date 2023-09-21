@@ -85,9 +85,11 @@ def scrape_channels(channel_urls):
                 video_urls = _get_video_ids(driver, prefix)
                 video_ids = [video_url[len(prefix) :] for video_url in video_urls]
                 # Check if all the videos have been scraped
-                if Video.objects.filter(video_id__in=video_ids).count() == len(
-                    video_ids
-                ):
+                if Video.objects.filter(video_id__in=video_ids).count() > 1:
+                    # Save the videos
+                    for video_id in video_ids:
+                        print(video_id)
+                        Video.objects.update_or_create(video_id=video_id)
                     print("ALL VIDEOS HAVE BEEN SCRAPED")
                     continue
                 print("SCROLLING DOWN")
