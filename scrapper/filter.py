@@ -49,9 +49,13 @@ def extract_brand_deal_links(description):
 
 # TODO rate limit
 def create_brand_deal_links():
-    detailed_videos = Video.objects.filter(status=Video.DETAILED)[:50]  # TODO the limit
+    detailed_videos = Video.objects.filter(status=Video.DETAILED)[
+        :50
+    ]  # TODO limit to a channel
     for video in detailed_videos:
-        urls = extract_brand_deal_links(video.description)
+        urls = extract_brand_deal_links(
+            video.description[:2000]
+        )  # The first 2000 characters
         print(video.video_id, urls)
         # BrandDeal.objects.get_or_create(video=video, initial_url=url)
         BrandDeal.objects.bulk_create(
