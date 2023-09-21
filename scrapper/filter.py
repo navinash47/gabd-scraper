@@ -49,7 +49,7 @@ def extract_brand_deal_links(description):
 
 # TODO rate limit
 def create_brand_deal_links():
-    detailed_videos = Video.objects.filter(status=Video.DETAILED)[:10]
+    detailed_videos = Video.objects.filter(status=Video.DETAILED)[:50]  # TODO the limit
     for video in detailed_videos:
         urls = extract_brand_deal_links(video.description)
         print(video.video_id, urls)

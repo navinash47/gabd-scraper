@@ -45,7 +45,7 @@ def scrape_video(video_url):
         driver.quit()
 
 
-def scrape_channel(channel_url):
+def scrape_channels(channel_urls):
     prefix = "https://www.youtube.com/watch?v="
 
     # Configure Selenium options
@@ -55,48 +55,52 @@ def scrape_channel(channel_url):
     # Initialize Selenium webdriver
     driver = webdriver.Chrome(options=chrome_options)
 
-    # Open the URL
-    driver.get(channel_url)
-
     # Extract all the videos from the channel
     try:
-        element_xpath = "//*[@id='contents']"
-
-        WebDriverWait(driver, 30).until(
-            EC.presence_of_element_located((By.XPATH, element_xpath))
-        )
-
-        while True:
-            # Scroll down until id="spinner" disappears
-            driver.execute_script(
-                "window.scrollTo(0, document.getElementById('contents').scrollHeight);"
-            )
+        for channel_url in channel_urls:
             try:
-                driver.find_element(By.ID, "spinner")
-            except:
-                print("END OF PAGE")
-                break
+                # Open the URL
+                driver.get(channel_url)
+                element_xpath = "//*[@id='contents']"
 
-        # Find the <a> elements with id="thumbnail"
-        tb_elements = driver.find_elements(By.ID, "thumbnail")
+                WebDriverWait(driver, 30).until(
+                    EC.presence_of_element_located((By.XPATH, element_xpath))
+                )
 
-        video_urls = []
+                while True:
+                    # Scroll down until id="spinner" disappears
+                    driver.execute_script(
+                        "window.scrollTo(0, document.getElementById('contents').scrollHeight);"
+                    )
+                    try:
+                        driver.find_element(By.ID, "spinner")
+                    except:
+                        print("END OF PAGE")
+                        break
 
-        for tb_element in tb_elements:
-            video_url = tb_element.get_attribute("href")
-            if video_url is not None and video_url.startswith(prefix):
-                video_urls.append(video_url)
+                # Find the <a> elements with id="thumbnail"
+                tb_elements = driver.find_elements(By.ID, "thumbnail")
 
-        # Remove duplicates
-        video_urls = list(set(video_urls))
+                video_urls = []
 
-        # Save the videos
-        for video_url in video_urls:
-            video_id = video_url[len(prefix) :]
-            print(video_id)
-            Video.objects.update_or_create(video_id=video_id)
+                for tb_element in tb_elements:
+                    video_url = tb_element.get_attribute("href")
+                    if video_url is not None and video_url.startswith(prefix):
+                        video_urls.append(video_url)
 
-        print(f"Found {len(video_urls)} videos")
+                # Remove duplicates
+                video_urls = list(set(video_urls))
+
+                # Save the videos
+                for video_url in video_urls:
+                    video_id = video_url[len(prefix) :]
+                    print(video_id)
+                    Video.objects.update_or_create(video_id=video_id)
+
+                print(f"Found {len(video_urls)} videos")
+
+            except Exception as e:
+                print(e)
 
     except Exception as e:
         print(e)
@@ -106,5 +110,6 @@ def scrape_channel(channel_url):
         driver.quit()
 
 
-channel_url = "https://www.youtube.com/@veritasium/videos"
-scrape_channel(channel_url)
+veritasium_videos_url = "https://www.youtube.com/@veritasium/videos"
+lex_fridman_videos_url = "https://www.youtube.com/@lexfridman/videos"
+scrape_channels([lex_fridman_videos_url])

@@ -1,3 +1,4 @@
+import re
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
@@ -8,27 +9,46 @@ def validate_brand_urls():
     chrome_options = Options()
     chrome_options.add_argument("--headless")  # Run in headless mode
 
-    # Initialize Selenium webdriver
-    driver = webdriver.Chrome(options=chrome_options)
     try:
-        initial_urls = BrandDeal.objects.filter(status=BrandDeal.INITIAL).values_list(
-            "initial_url", flat=True
-        )
+        # Initialize Selenium webdriver
+        driver = webdriver.Chrome(options=chrome_options)
+        driver.implicitly_wait(30)  # seconds
+        brand_deals = BrandDeal.objects.filter(status=BrandDeal.INITIAL)
 
-        for initial_url in initial_urls:
-            # Navigate to the short URL
-            driver.get(initial_url)
-            # Get the final URL after all redirects
-            final_url = driver.current_url
-            # Get the domain name
-            domain = final_url.split("/")[2]
-            # Create a Brand object if it doesn't exist
-            brand, created = Brand.objects.get_or_create(domain=domain)
-            BrandDeal.objects.filter(initial_url=initial_url).update(
-                brand=brand,
-                final_url=final_url,
-                status=BrandDeal.SCRAPED,
-            )
+        for brand_deal in brand_deals:
+            try:
+                # Navigate to the short URL
+                print("--------------------------")
+                print(brand_deal.initial_url)
+                # If a brand deal has already been scraped, skip it
+                already_scraped = BrandDeal.objects.filter(
+                    initial_url=brand_deal.initial_url, status=BrandDeal.SCRAPED
+                ).first()
+                if already_scraped:
+                    print("Already scraped", brand_deal.initial_url)
+                    brand_deal.brand = already_scraped.brand
+                    brand_deal.final_url = already_scraped.final_url
+                    brand_deal.status = BrandDeal.SCRAPED
+                    brand_deal.save()
+                    continue
+                driver.get(brand_deal.initial_url)
+                # Get the final URL after all redirects
+                final_url = driver.current_url
+                print(final_url)
+                # Get the domain name
+                domain_regex = r"(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^:\/\n]+)"
+                domain = re.search(domain_regex, final_url).group(1)
+                print(domain)
+                # Create a Brand object if it doesn't exist
+                brand, created = Brand.objects.get_or_create(domain=domain)
+                # Update the brand deal
+                brand_deal.brand = brand
+                brand_deal.final_url = final_url
+                brand_deal.status = BrandDeal.SCRAPED
+                brand_deal.save()
+
+            except Exception as e:
+                print(e)
 
     except Exception as e:
         print(e)
@@ -36,3 +56,6 @@ def validate_brand_urls():
     finally:
         # Close the WebDriver
         driver.quit()
+
+
+validate_brand_urls()
