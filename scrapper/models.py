@@ -64,6 +64,9 @@ class Video(models.Model):
     def __str__(self):
         return f"{self.video_id} - {self.title}"
 
+    class Meta:
+        ordering = ["-published_at"]
+
 
 class Brand(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

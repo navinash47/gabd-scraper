@@ -89,13 +89,14 @@ def scrape_channel(channel_url):
 
         # Remove duplicates
         video_urls = list(set(video_urls))
-        print(f"Found {len(video_urls)} videos")
 
         # Save the videos
         for video_url in video_urls:
             video_id = video_url[len(prefix) :]
             print(video_id)
             Video.objects.update_or_create(video_id=video_id)
+
+        print(f"Found {len(video_urls)} videos")
 
     except Exception as e:
         print(e)
