@@ -1,0 +1,3 @@
+from scrapper.pipelines import validate_brand_deals_pipeline
+
+validate_brand_deals_pipeline()

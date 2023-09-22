@@ -1,13 +1,17 @@
+from django.utils import timezone
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-from scrapper.models import Video
+from scrapper.models import Video, Channel
+from scrapper.details import _get_videos_details_yt_api, get_channels_details
+from scrapper.limits import CHANNEL_IGNORE_VIDEO_COUNT
 
 
-def scrape_video(video_url):
+def scrape_video(root_video_id: str):
     prefix = "https://www.youtube.com/watch?v="
     # Configure Selenium options
     chrome_options = Options()
@@ -17,9 +21,11 @@ def scrape_video(video_url):
     driver = webdriver.Chrome(options=chrome_options)
 
     # Open the URL
-    driver.get(video_url)
+    root_video_url = f"{prefix}{root_video_id}"
+    driver.get(root_video_url)
 
     try:
+        print(f"{timezone.now()} Scraping CROSS - video with id", root_video_id)
         element_xpath = "//ytd-compact-video-renderer"
 
         WebDriverWait(driver, 30).until(
@@ -30,12 +36,31 @@ def scrape_video(video_url):
         tb_elements = driver.find_elements(By.ID, "thumbnail")
 
         # Print the links
+        video_ids = []
         for tb_element in tb_elements:
             video_url = tb_element.get_attribute("href")
             if video_url is not None and video_url.startswith(prefix):
                 video_id = video_url[len(prefix) :]
                 print(video_id)
-                Video.objects.update_or_create(video_id=video_id)
+                video_ids.append(video_id)
+
+        # Remove duplicates
+        video_ids = list(set(video_ids))
+        print(f"{timezone.now()} Found CROSS SCRAPED videos", len(video_ids))
+        # Use YouTube API to get the details of the videos
+        BATCH_SIZE = 50
+        batches = [
+            video_ids[i : i + BATCH_SIZE] for i in range(0, len(video_ids), BATCH_SIZE)
+        ]
+        channels_set = set()
+        for batch in batches:
+            data = _get_videos_details_yt_api(batch)
+            if data is not None and "items" in data:
+                channel_ids = [video["snippet"]["channelId"] for video in data["items"]]
+                channels_set.update(channel_ids)
+
+        channels_list = list(channels_set)
+        get_channels_details(channels_list)
 
     except Exception as e:
         print(e)
@@ -45,7 +70,7 @@ def scrape_video(video_url):
         driver.quit()
 
 
-def _get_video_ids(driver, prefix):
+def _get_video_ids(driver, prefix: str):
     tb_elements = driver.find_elements(By.ID, "thumbnail")
     video_urls = []
     for tb_element in tb_elements:
@@ -59,7 +84,8 @@ def _get_video_ids(driver, prefix):
     return video_urls
 
 
-def scrape_channels(channel_urls):
+def scrape_channels(channel_ids: list):
+    # Channels that have status INITIALISED
     prefix = "https://www.youtube.com/watch?v="
 
     # Configure Selenium options
@@ -71,8 +97,25 @@ def scrape_channels(channel_urls):
 
     # Extract all the videos from the channel
     try:
-        for channel_url in channel_urls:
+        for channel_id in channel_ids:
             try:
+                channel = Channel.objects.filter(
+                    channel_id=channel_id, status=Channel.FETCHED
+                ).first()
+                if (
+                    channel is None
+                    or channel.videos.count() > CHANNEL_IGNORE_VIDEO_COUNT
+                ):
+                    print(
+                        f"{timezone.now()} SKIPPING channel with id {channel_id} that has {channel.videos.count()} videos"
+                    )
+                    continue
+                print(
+                    f"{timezone.now()} SCRAPING channel with id {channel_id} that has {channel.videos.count()} videos"
+                )
+                channel.status = Channel.PROCESSING
+                channel.save(update_fields=["status"])
+                channel_url = f"https://www.youtube.com/channel/{channel_id}/videos"
                 # Open the URL
                 driver.get(channel_url)
                 element_xpath = "//*[@id='contents']"
@@ -87,10 +130,18 @@ def scrape_channels(channel_urls):
                 # Check if all the videos have been scraped
                 if Video.objects.filter(video_id__in=video_ids).count() > 1:
                     # Save the videos
+                    update_channel = False
                     for video_id in video_ids:
                         print(video_id)
-                        Video.objects.update_or_create(video_id=video_id)
+                        video, created = Video.objects.get_or_create(
+                            video_id=video_id, defaults={"channel": channel}
+                        )
+                        if created:
+                            update_channel = True
                     print("ALL VIDEOS HAVE BEEN SCRAPED")
+                    if update_channel:
+                        channel.status = Channel.PAUSED
+                        channel.save(update_fields=["status"])
                     continue
                 print("SCROLLING DOWN")
 
@@ -110,10 +161,17 @@ def scrape_channels(channel_urls):
                 # Save the videos
                 for video_url in video_urls:
                     video_id = video_url[len(prefix) :]
-                    print(video_id)
-                    Video.objects.update_or_create(video_id=video_id)
+                    print(f"SAVING VIDEO {video_id}")
+                    Video.objects.get_or_create(
+                        video_id=video_id, defaults={"channel": channel}
+                    )
 
-                print(f"Found {len(video_urls)} videos")
+                channel.status = Channel.PAUSED
+                channel.save(update_fields=["status"])
+
+                print(
+                    f"{timezone.now()} SCRAPED channel with id {channel_id} that has {channel.videos.count()} videos"
+                )
 
             except Exception as e:
                 print(e)
@@ -124,8 +182,3 @@ def scrape_channels(channel_urls):
     finally:
         # Close the webdriver
         driver.quit()
-
-
-veritasium_videos_url = "https://www.youtube.com/@veritasium/videos"
-lex_fridman_videos_url = "https://www.youtube.com/@lexfridman/videos"
-scrape_channels([lex_fridman_videos_url])

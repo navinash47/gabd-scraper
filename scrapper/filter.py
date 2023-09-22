@@ -1,6 +1,7 @@
 import os
 import re
 import openai
+import backoff
 
 from scrapper.models import Video, BrandDeal
 
@@ -20,6 +21,9 @@ Here's the description
 """
 
 
+# 3,500 RPM - Paid users after 48 hours
+# https://platform.openai.com/docs/guides/rate-limits/overview
+@backoff.on_exception(backoff.expo, openai.error.RateLimitError)  # TODO test
 def extract_brand_deal_links(description):
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
@@ -47,20 +51,24 @@ def extract_brand_deal_links(description):
     return urls
 
 
-# TODO rate limit
 def create_brand_deal_links():
-    detailed_videos = Video.objects.filter(status=Video.DETAILED)[
-        :50
-    ]  # TODO limit to a channel
-    for video in detailed_videos:
-        urls = extract_brand_deal_links(
-            video.description[:2000]
-        )  # The first 2000 characters
-        print(video.video_id, urls)
-        # BrandDeal.objects.get_or_create(video=video, initial_url=url)
-        BrandDeal.objects.bulk_create(
-            [BrandDeal(video=video, initial_url=url) for url in urls]
-        )
-
-
-create_brand_deal_links()
+    detailed_videos = Video.objects.filter(
+        status=Video.DETAILED,
+    )
+    BATCH_SIZE = 100
+    batches = [
+        detailed_videos[i : i + BATCH_SIZE]
+        for i in range(0, len(detailed_videos), BATCH_SIZE)
+    ]
+    for batch in batches:
+        for video in batch:
+            print("Extracting brand deal links for", video.video_id)
+            urls = extract_brand_deal_links(
+                video.description[:2000]
+            )  # The first 2000 characters
+            # Remove duplicates
+            urls = list(set(urls))
+            print(video.video_id, urls)
+            BrandDeal.objects.bulk_create(
+                [BrandDeal(video=video, initial_url=url) for url in urls]
+            )

@@ -4,28 +4,25 @@ from django.conf import settings
 from django.utils import timezone
 
 from scrapper.models import Channel, Video
+from scrapper.limits import CHANNEL_VIDEOS_FETCH_COUNT
 
 
 YOUTUBE_API_KEY = settings.YOUTUBE_API_KEY
 
+BATCH_SIZE = 50
+
 
 # Use YouTube API to get details of a video
-def get_video_details():
-    # Define the URL with parameters
-    all_video_ids = Video.objects.filter(status=Video.SCRAPED).values_list(
-        "video_id", flat=True
-    )[:50]
-    print(len(all_video_ids))
+def _get_videos_details_yt_api(video_ids: list):
+    if len(video_ids) > BATCH_SIZE:
+        raise Exception("Batch size is too large")
 
     base_url = f"https://youtube.googleapis.com/youtube/v3/videos"
-
     params = {
         "part": "snippet,statistics",
-        "id": ",".join(all_video_ids),
+        "id": ",".join(video_ids),
         "key": YOUTUBE_API_KEY,
     }
-
-    # Define headers
     headers = {"Accept": "application/json"}
 
     # Send the GET request
@@ -33,38 +30,135 @@ def get_video_details():
 
     # Check if the request was successful
     if response.status_code == 200:
-        print("Request was successful")
+        print(f"{timezone.now()} YT Video Details successful")
         # You can access the response data using response.json()
         data = response.json()
-        for video_data in data["items"]:
-            video_id = video_data["id"]
-            snippet = video_data["snippet"]
-            channel_id = snippet["channelId"]
-            channel, created = Channel.objects.get_or_create(channel_id=channel_id)
-            Video.objects.filter(video_id=video_id).update(
-                channel=channel,
-                title=snippet["title"],
-                description=snippet["description"],
-                default_language=snippet["defaultLanguage"]
-                if "defaultLanguage" in snippet
-                else None,
-                category_id=snippet["categoryId"],
-                published_at=snippet["publishedAt"],
-                # Statistics
-                view_count=video_data["statistics"]["viewCount"],
-                like_count=video_data["statistics"]["likeCount"],
-                favorite_count=video_data["statistics"]["favoriteCount"],
-                comment_count=video_data["statistics"]["commentCount"],
-                status=Video.DETAILED,
-                updated_at=timezone.now(),
-            )
         return data
     else:
-        print(f"Request failed with status code: {response.status_code}")
+        print(
+            f"{timezone.now()} YT Video Details failed with status code: {response.status_code}"
+        )
+        return None
 
 
-get_video_details()
+def _get_channels_details_yt_api(channel_ids: list):
+    if len(channel_ids) > BATCH_SIZE:
+        raise Exception("Batch size is too large")
 
+    base_url = f"https://youtube.googleapis.com/youtube/v3/channels"
+    params = {
+        "part": "snippet,statistics",
+        "id": ",".join(channel_ids),
+        "key": YOUTUBE_API_KEY,
+    }
+    headers = {"Accept": "application/json"}
+
+    # Send the GET request
+    response = requests.get(base_url, params=params, headers=headers)
+
+    # Check if the request was successful
+    if response.status_code == 200:
+        print(f"{timezone.now()} YT Channel Details successful")
+        # You can access the response data using response.json()
+        data = response.json()
+        return data
+    else:
+        print(
+            f"{timezone.now()} YT Channel Details failed with status code: {response.status_code}"
+        )
+        return None
+
+
+def get_videos_details(channel_ids):
+    for channel_id in channel_ids:
+        # Define the URL with parameters
+        detailed_count = Video.objects.filter(
+            status=Video.DETAILED, channel__channel_id=channel_id
+        ).count()
+        if detailed_count >= CHANNEL_VIDEOS_FETCH_COUNT:
+            print(
+                f"{timezone.now()} SKIPPING {channel_id} as it has already been FULLY DETAILED"
+            )
+            continue
+        all_video_ids = list(
+            Video.objects.filter(status=Video.SCRAPED, channel__channel_id=channel_id)[
+                : CHANNEL_VIDEOS_FETCH_COUNT - detailed_count
+            ].values_list("video_id", flat=True)
+        )
+        # Divide the video ids into batches of 50
+        batches = [
+            all_video_ids[i : i + BATCH_SIZE]
+            for i in range(0, len(all_video_ids), BATCH_SIZE)
+        ]
+        for batch in batches:
+            print(f"{timezone.now()} Getting video details for {channel_id}")
+            data = _get_videos_details_yt_api(batch)
+            if data is not None and "items" in data:
+                for video_data in data["items"]:
+                    video_id = video_data["id"]
+                    print(f"{timezone.now()} Getting video details for {video_id}")
+                    snippet = video_data["snippet"]
+                    channel_id = snippet["channelId"]
+                    channel = Channel.objects.get(channel_id=channel_id)
+                    Video.objects.filter(video_id=video_id).update(
+                        channel=channel,
+                        title=snippet["title"],
+                        thumbnail_url=snippet["thumbnails"]["default"]["url"],
+                        description=snippet["description"],
+                        default_language=snippet["defaultLanguage"]
+                        if "defaultLanguage" in snippet
+                        else None,
+                        category_id=snippet["categoryId"],
+                        published_at=snippet["publishedAt"],
+                        # Statistics
+                        view_count=video_data["statistics"]["viewCount"],
+                        like_count=video_data["statistics"]["likeCount"],
+                        favorite_count=video_data["statistics"]["favoriteCount"],
+                        comment_count=video_data["statistics"]["commentCount"],
+                        status=Video.DETAILED,
+                        updated_at=timezone.now(),
+                    )
+
+
+def get_channels_details(channel_ids):
+    batches = [
+        channel_ids[i : i + BATCH_SIZE] for i in range(0, len(channel_ids), BATCH_SIZE)
+    ]
+
+    for batch in batches:
+        print(f"{timezone.now()} Getting channel details for {batch} channels")
+        data = _get_channels_details_yt_api(batch)
+        if data is not None and "items" in data:
+            for channel_data in data["items"]:
+                channel_id = channel_data["id"]
+                print(f"{timezone.now()} Getting channel details for {channel_id}")
+                snippet = channel_data["snippet"]
+                Channel.objects.update_or_create(
+                    channel_id=channel_id,
+                    defaults={
+                        "title": snippet["title"],
+                        "description": snippet["description"],
+                        "custom_url": snippet["customUrl"]
+                        if "customUrl" in snippet
+                        else None,
+                        "thumbnail_url": snippet["thumbnails"]["default"]["url"],
+                        "country": snippet["country"],
+                        # Statistics
+                        "view_count": channel_data["statistics"]["viewCount"],
+                        "subscriber_count": channel_data["statistics"][
+                            "subscriberCount"
+                        ],
+                        "hidden_subscriber_count": channel_data["statistics"][
+                            "hiddenSubscriberCount"
+                        ],
+                        "video_count": channel_data["statistics"]["videoCount"],
+                        "status": Channel.FETCHED,
+                        "updated_at": timezone.now(),
+                    },
+                )
+
+
+# DO NOT DELETE
 video_sample = {
     "kind": "youtube#videoListResponse",
     "etag": "IijV52BN0AbJ--RsUa6ArtzIGkU",
@@ -135,7 +229,7 @@ channel_sample = {
     "items": [
         {
             "kind": "youtube#channel",
-            "etag": "DuGGebRw2ewH68GcombM8CyJv7U",
+            "etag": "R3WUkbv1nSl1lJkY658b9ystPxo",
             "id": "UCSHZKyawb77ixDdsGog4iWA",
             "snippet": {
                 "title": "Lex Fridman",
@@ -164,6 +258,12 @@ channel_sample = {
                     "description": "Lex Fridman Podcast and other videos.\n",
                 },
                 "country": "US",
+            },
+            "statistics": {
+                "viewCount": "504387626",
+                "subscriberCount": "3240000",
+                "hiddenSubscriberCount": False,
+                "videoCount": "780",
             },
         }
     ],

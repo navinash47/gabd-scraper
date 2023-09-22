@@ -1,5 +1,7 @@
-# TIDI dekete this later
-python manage.py shell < scrapper/scrape.py
-python manage.py shell < scrapper/details.py
-python manage.py shell < scrapper/filter.py
-python manage.py shell < scrapper/validate.py
+python manage.py shell < scrapper/utils.py
+python manage.py shell < scrapper/runners/01_video_details.py   &
+python manage.py shell < scrapper/runners/02_brand_deals.py     &
+python manage.py shell < scrapper/runners/03_new_channels.py    &
+python manage.py shell < scrapper/runners/04_validate_deals.py  &
+wait
+

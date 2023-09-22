@@ -19,7 +19,7 @@ def validate_brand_urls():
             try:
                 # Navigate to the short URL
                 print("--------------------------")
-                print(brand_deal.initial_url)
+                print("Validating brand deal initial URL", brand_deal.initial_url)
                 # If a brand deal has already been scraped, skip it
                 already_scraped = BrandDeal.objects.filter(
                     initial_url=brand_deal.initial_url, status=BrandDeal.SCRAPED
