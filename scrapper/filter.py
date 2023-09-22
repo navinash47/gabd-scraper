@@ -52,8 +52,10 @@ def extract_brand_deal_links(description):
 
 
 def create_brand_deal_links():
+    # Detailed videos which already don't have BrandDeal
     detailed_videos = Video.objects.filter(
         status=Video.DETAILED,
+        brand_deals__isnull=True,
     )
     BATCH_SIZE = 100
     batches = [
@@ -72,3 +74,4 @@ def create_brand_deal_links():
             BrandDeal.objects.bulk_create(
                 [BrandDeal(video=video, initial_url=url) for url in urls]
             )
+    detailed_videos.update(status=Video.FILTERED)

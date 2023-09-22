@@ -1,4 +1,5 @@
 from django.utils import timezone
+from django.db.models import Q
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -41,7 +42,6 @@ def scrape_new_channels(root_video_id: str):
             video_url = tb_element.get_attribute("href")
             if video_url is not None and video_url.startswith(prefix):
                 video_id = video_url[len(prefix) :]
-                print(video_id)
                 video_ids.append(video_id)
 
         # Remove duplicates
@@ -63,6 +63,7 @@ def scrape_new_channels(root_video_id: str):
         get_channels_details(channels_list)
 
     except Exception as e:
+        print("Exception in scrape_new_channels")
         print(e)
 
     finally:
@@ -99,19 +100,18 @@ def scrape_channels_videos(channel_ids: list):
     try:
         for channel_id in channel_ids:
             try:
-                channel = Channel.objects.filter(
-                    channel_id=channel_id, status=Channel.FETCHED
-                ).first()
-                if (
-                    channel is None
-                    or channel.videos.count() > CHANNEL_IGNORE_VIDEO_COUNT
-                ):
+                print(f"{timezone.now()} Scraping channel with id", channel_id)
+                channel = Channel.objects.get(
+                    channel_id=channel_id, status=Channel.PROCESSING
+                )
+                if channel is None or channel.video_count > CHANNEL_IGNORE_VIDEO_COUNT:
                     print(
-                        f"{timezone.now()} SKIPPING channel with id {channel_id} that has {channel.videos.count()} videos"
+                        f"{timezone.now()} SKIPPING channel {channel.title} that has {channel.video_count} videos"
                     )
                     continue
+
                 print(
-                    f"{timezone.now()} SCRAPING channel with id {channel_id} that has {channel.videos.count()} videos"
+                    f"{timezone.now()} SCRAPING channel {channel.title} that has {channel.video_count} videos"
                 )
                 channel.status = Channel.PROCESSING
                 channel.save(update_fields=["status"])
@@ -132,7 +132,6 @@ def scrape_channels_videos(channel_ids: list):
                     # Save the videos
                     update_channel = False
                     for video_id in video_ids:
-                        print(video_id)
                         video, created = Video.objects.get_or_create(
                             video_id=video_id, defaults={"channel": channel}
                         )
@@ -161,7 +160,6 @@ def scrape_channels_videos(channel_ids: list):
                 # Save the videos
                 for video_url in video_urls:
                     video_id = video_url[len(prefix) :]
-                    print(f"SAVING VIDEO {video_id}")
                     Video.objects.get_or_create(
                         video_id=video_id, defaults={"channel": channel}
                     )
@@ -170,13 +168,15 @@ def scrape_channels_videos(channel_ids: list):
                 channel.save(update_fields=["status"])
 
                 print(
-                    f"{timezone.now()} SCRAPED channel with id {channel_id} that has {channel.videos.count()} videos"
+                    f"{timezone.now()} SCRAPED channel {channel.title} that has {channel.video_count} videos"
                 )
 
             except Exception as e:
+                print("Exception in scrape_channels_videos INSIDE")
                 print(e)
 
     except Exception as e:
+        print("Exception in scrape_channels_videos OUTSIDE")
         print(e)
 
     finally:

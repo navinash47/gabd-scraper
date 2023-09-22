@@ -21,7 +21,7 @@ class Channel(models.Model):
     channel_id = models.CharField(max_length=200)
     title = models.CharField(max_length=200, null=True, blank=True)
     description = models.TextField(null=True, blank=True)
-    custom_url = models.URLField(null=True, blank=True)
+    custom_url = models.CharField(max_length=200, null=True, blank=True)
     thumbnail_url = models.URLField(
         null=True, blank=True
     )  # In front end edit the url to get different resolutions - use medium or high
@@ -38,7 +38,7 @@ class Channel(models.Model):
     has_cross_scraped = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.channel_id} - {self.title}"
+        return f"{self.channel_id} - {self.title} - {self.status}"
 
 
 class Video(models.Model):
@@ -77,7 +77,7 @@ class Video(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.video_id} - {self.title}"
+        return f"{self.video_id} - {self.status} - {self.title}"
 
     class Meta:
         ordering = ["-published_at"]
@@ -115,5 +115,9 @@ class BrandDeal(models.Model):
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=INITIAL)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # video and initial_url should be unique together
+    class Meta:
+        unique_together = ["video", "initial_url"]
+
     def __str__(self):
-        return f"{self.video.video_id} | {self.initial_url} - {self.final_url}"
+        return f"{self.video.channel.title} | {self.initial_url}"

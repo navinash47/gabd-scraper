@@ -8,7 +8,7 @@ from scrapper.filter import create_brand_deal_links
 from scrapper.validate import validate_brand_urls
 from scrapper.limits import TOTAL_CHANNELS_COUNT
 
-CYCLES = 3
+CYCLES = 10
 
 
 def get_channels_pipeline():
@@ -16,7 +16,7 @@ def get_channels_pipeline():
         # Don't scrape any more new channels
         return
     for i in range(CYCLES):
-        print("Getting channels", i)
+        print("Getting channels CYCLE", i)
         # Get one video from every channel
         channels = Channel.objects.filter(
             has_cross_scraped=False, status=Channel.FETCHED
@@ -31,7 +31,7 @@ def get_channels_pipeline():
 
 def get_video_details_pipeline():
     for i in range(CYCLES):
-        print("Getting video details", i)
+        print("Getting video details CYCLE", i)
         channel_ids = list(
             Channel.objects.filter(Q(status=Channel.FETCHED) | Q(status=Channel.PAUSED))
             .order_by("-updated_at")
@@ -43,14 +43,13 @@ def get_video_details_pipeline():
         )
         try:
             scrape_channels_videos(channel_ids)
-            # TODO get channel details
             get_videos_details(channel_ids)
+            Channel.objects.filter(channel_id__in=channel_ids).update(
+                status=Channel.COMPLETED
+            )
         except Exception as e:
+            print("Exception in get_video_details_pipeline")
             print(e)
-        finally:
-            # TODO after implementing get channels,
-            # split the channels to complete and incomplete
-            # using channel.video_count
             Channel.objects.filter(channel_id__in=channel_ids).update(
                 status=Channel.PAUSED
             )
@@ -58,11 +57,11 @@ def get_video_details_pipeline():
 
 def get_brand_deals_pipeline():
     for i in range(CYCLES):
-        print("Filtering brand deals", i)
+        print("Filtering brand deals CYCLE", i)
         create_brand_deal_links()
 
 
 def validate_brand_deals_pipeline():
     for i in range(CYCLES):
-        print("Validating brand deals", i)
+        print("Validating brand deals CYCLE", i)
         validate_brand_urls()

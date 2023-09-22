@@ -48,9 +48,13 @@ def validate_brand_urls():
                 brand_deal.save()
 
             except Exception as e:
+                brand_deal.status = BrandDeal.SCRAPED
+                brand_deal.save()
+                print("Exception in validate_brand_urls INSIDE")
                 print(e)
 
     except Exception as e:
+        print("Exception in validate_brand_urls OUTSIDE")
         print(e)
 
     finally:
