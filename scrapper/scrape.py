@@ -11,7 +11,7 @@ from scrapper.details import _get_videos_details_yt_api, get_channels_details
 from scrapper.limits import CHANNEL_IGNORE_VIDEO_COUNT
 
 
-def scrape_video(root_video_id: str):
+def scrape_new_channels(root_video_id: str):
     prefix = "https://www.youtube.com/watch?v="
     # Configure Selenium options
     chrome_options = Options()
@@ -84,7 +84,7 @@ def _get_video_ids(driver, prefix: str):
     return video_urls
 
 
-def scrape_channels(channel_ids: list):
+def scrape_channels_videos(channel_ids: list):
     # Channels that have status INITIALISED
     prefix = "https://www.youtube.com/watch?v="
 

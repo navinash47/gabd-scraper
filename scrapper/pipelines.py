@@ -2,16 +2,19 @@ from django.db.models import Q
 
 
 from scrapper.models import Channel
-from scrapper.scrape import scrape_video, scrape_channels
+from scrapper.scrape import scrape_new_channels, scrape_channels_videos
 from scrapper.details import get_videos_details
 from scrapper.filter import create_brand_deal_links
 from scrapper.validate import validate_brand_urls
-
+from scrapper.limits import TOTAL_CHANNELS_COUNT
 
 CYCLES = 3
 
 
 def get_channels_pipeline():
+    if Channel.objects.count() >= TOTAL_CHANNELS_COUNT:
+        # Don't scrape any more new channels
+        return
     for i in range(CYCLES):
         print("Getting channels", i)
         # Get one video from every channel
@@ -21,7 +24,7 @@ def get_channels_pipeline():
         for channel in channels:
             video = channel.videos.first()
             if video is not None:
-                scrape_video(video.video_id)
+                scrape_new_channels(video.video_id)
                 channel.has_cross_scraped = True
                 channel.save(update_fields=["has_cross_scraped"])
 
@@ -39,7 +42,7 @@ def get_video_details_pipeline():
             status=Channel.PROCESSING
         )
         try:
-            scrape_channels(channel_ids)
+            scrape_channels_videos(channel_ids)
             # TODO get channel details
             get_videos_details(channel_ids)
         except Exception as e:
