@@ -63,7 +63,7 @@ def scrape_new_channels(root_video_id: str):
         get_channels_details(channels_list)
 
     except Exception as e:
-        print("Exception in scrape_new_channels")
+        print(f"{timezone.now()} Exception in scrape_new_channels")
         print(e)
 
     finally:
@@ -124,7 +124,7 @@ def scrape_channels_videos(channel_ids: list):
                     EC.presence_of_element_located((By.XPATH, element_xpath))
                 )
 
-                print("PRECHECK OF VIDEOS")
+                print(f"{timezone.now()} PRECHECK OF VIDEOS")
                 video_urls = _get_video_ids(driver, prefix)
                 video_ids = [video_url[len(prefix) :] for video_url in video_urls]
                 # Check if all the videos have been scraped
@@ -137,12 +137,12 @@ def scrape_channels_videos(channel_ids: list):
                         )
                         if created:
                             update_channel = True
-                    print("ALL VIDEOS HAVE BEEN SCRAPED")
+                    print(f"{timezone.now()} ALL VIDEOS HAVE BEEN SCRAPED")
                     if update_channel:
                         channel.status = Channel.PAUSED
                         channel.save(update_fields=["status"])
                     continue
-                print("SCROLLING DOWN")
+                print(f"{timezone.now()} SCROLLING DOWN")
 
                 while True:
                     # Scroll down until id="spinner" disappears
@@ -152,7 +152,7 @@ def scrape_channels_videos(channel_ids: list):
                     try:
                         driver.find_element(By.ID, "spinner")
                     except:
-                        print("END OF PAGE")
+                        print(f"{timezone.now()} END OF PAGE")
                         break
 
                 video_urls = _get_video_ids(driver, prefix)
@@ -172,11 +172,11 @@ def scrape_channels_videos(channel_ids: list):
                 )
 
             except Exception as e:
-                print("Exception in scrape_channels_videos INSIDE")
+                print(f"{timezone.now()} Exception in scrape_channels_videos INSIDE")
                 print(e)
 
     except Exception as e:
-        print("Exception in scrape_channels_videos OUTSIDE")
+        print(f"{timezone.now()} Exception in scrape_channels_videos OUTSIDE")
         print(e)
 
     finally:

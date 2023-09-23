@@ -1,4 +1,5 @@
 from django.db.models import Q
+from django.utils import timezone
 
 
 from scrapper.models import Channel
@@ -16,7 +17,7 @@ def get_channels_pipeline():
         # Don't scrape any more new channels
         return
     for i in range(CYCLES):
-        print("Getting channels CYCLE", i)
+        print(f"{timezone.now()} Getting channels CYCLE {i}")
         # Get one video from every channel
         channels = Channel.objects.filter(
             has_cross_scraped=False, status=Channel.FETCHED
@@ -31,7 +32,7 @@ def get_channels_pipeline():
 
 def get_video_details_pipeline():
     for i in range(CYCLES):
-        print("Getting video details CYCLE", i)
+        print(f"{timezone.now()} Getting video details CYCLE {i}")
         channel_ids = list(
             Channel.objects.filter(Q(status=Channel.FETCHED) | Q(status=Channel.PAUSED))
             .order_by("-updated_at")
@@ -48,7 +49,7 @@ def get_video_details_pipeline():
                 status=Channel.COMPLETED
             )
         except Exception as e:
-            print("Exception in get_video_details_pipeline")
+            print(f"{timezone.now()} Error in getting video details CYCLE {i}")
             print(e)
             Channel.objects.filter(channel_id__in=channel_ids).update(
                 status=Channel.PAUSED
@@ -57,11 +58,11 @@ def get_video_details_pipeline():
 
 def get_brand_deals_pipeline():
     for i in range(CYCLES):
-        print("Filtering brand deals CYCLE", i)
+        print(f"{timezone.now()} Getting brand deals CYCLE {i}")
         create_brand_deal_links()
 
 
 def validate_brand_deals_pipeline():
     for i in range(CYCLES):
-        print("Validating brand deals CYCLE", i)
+        print(f"{timezone.now()} Validating brand deals CYCLE {i}")
         validate_brand_urls()

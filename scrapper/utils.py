@@ -1,4 +1,5 @@
-from scrapper.models import Channel
+from django.utils import timezone
+
 from scrapper.details import get_channels_details
 
 test_channel_ids = [
@@ -6,5 +7,5 @@ test_channel_ids = [
     "UCHnyfMqiRRG1u-2MsSQLbXA",  # Veritasium
 ]
 
-print("Creating test channels")
+print(f"{timezone.now()} Creating test channels")
 get_channels_details(test_channel_ids)

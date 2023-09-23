@@ -77,7 +77,7 @@ class Video(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.video_id} - {self.status} - {self.title}"
+        return f"{self.video_id} {self.channel.title} - {self.status} - {self.title}"
 
     class Meta:
         ordering = ["-published_at"]
@@ -87,11 +87,11 @@ class Brand(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    domain = models.CharField(max_length=200)
+    domain = models.CharField(max_length=200, unique=True)
     name = models.CharField(max_length=200, null=True, blank=True)
 
     def __str__(self):
-        return f"{self.domain} - {self.name}"
+        return f"{self.domain}"
 
 
 class BrandDeal(models.Model):

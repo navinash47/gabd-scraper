@@ -3,6 +3,8 @@ import re
 import openai
 import backoff
 
+from django.utils import timezone
+
 from scrapper.models import Video, BrandDeal
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -64,13 +66,21 @@ def create_brand_deal_links():
     ]
     for batch in batches:
         for video in batch:
-            print("Extracting brand deal links for", video.video_id)
+            description = video.description
+            # Find the first URL in the description using regex - http or https
+            url_index = re.search(r"(?P<url>https?://[^\s]+)", description)
+            if url_index is None:
+                continue
+            url_index = url_index.start()
+            # Get 300 characters before and 500 after the URL
+            description = description[max(0, url_index - 300) : url_index + 500]
+            print(f"{timezone.now()} Extracting brand deal links for {video.video_id}")
             urls = extract_brand_deal_links(
-                video.description[:2000]
+                description,
             )  # The first 2000 characters
             # Remove duplicates
             urls = list(set(urls))
-            print(video.video_id, urls)
+            print(timezone.now(), video.video_id, urls)
             BrandDeal.objects.bulk_create(
                 [BrandDeal(video=video, initial_url=url) for url in urls]
             )
