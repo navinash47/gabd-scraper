@@ -1,11 +1,10 @@
-import re
-
 from django.utils import timezone
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
-from scrapper.models import Brand, BrandDeal
+from scrapper.models import Brand, BrandDeal, BlackList
+from scrapper.utils import get_domain
 
 
 def validate_brand_urls():
@@ -41,8 +40,11 @@ def validate_brand_urls():
                 final_url = driver.current_url
                 print(f"{timezone.now()} Final URL {final_url}")
                 # Get the domain name
-                domain_regex = r"(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^:\/\n]+)"
-                domain = re.search(domain_regex, final_url).group(1)
+                domain = get_domain(final_url)
+                if BlackList.objects.filter(domain=domain).exists():
+                    print(f"{timezone.now()} Domain {domain} is blacklisted")
+                    brand_deal.delete()
+                    continue
                 print(f"{timezone.now()} Domain {domain}")
                 # Create a Brand object if it doesn't exist
                 brand, created = Brand.objects.get_or_create(domain=domain)

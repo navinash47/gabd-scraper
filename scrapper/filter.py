@@ -5,7 +5,8 @@ import backoff
 
 from django.utils import timezone
 
-from scrapper.models import Video, BrandDeal
+from scrapper.models import Video, BrandDeal, BlackList
+from scrapper.utils import get_domain
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
@@ -80,6 +81,12 @@ def create_brand_deal_links():
             )  # The first 2000 characters
             # Remove duplicates
             urls = list(set(urls))
+            # Filter the domains that are blacklisted
+            urls = [
+                url
+                for url in urls
+                if not BlackList.objects.filter(domain=get_domain(url)).exists()
+            ]
             print(timezone.now(), video.video_id, urls)
             BrandDeal.objects.bulk_create(
                 [BrandDeal(video=video, initial_url=url) for url in urls]

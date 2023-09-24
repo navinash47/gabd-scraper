@@ -93,6 +93,8 @@ class Brand(models.Model):
     def __str__(self):
         return f"{self.domain}"
 
+    # TODO create a validation function that checks if the domain is not blacklisted
+
 
 class BrandDeal(models.Model):
     INITIAL = "I"  # The initial URL was scraped
@@ -121,3 +123,13 @@ class BrandDeal(models.Model):
 
     def __str__(self):
         return f"{self.video.channel.title} | {self.initial_url}"
+
+
+class BlackList(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    domain = models.CharField(max_length=200, unique=True)
+
+    def __str__(self):
+        return f"{self.domain}"
