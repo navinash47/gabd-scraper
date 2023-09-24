@@ -2,6 +2,7 @@ import requests
 
 from django.conf import settings
 from django.utils import timezone
+from django.db.models import Q
 
 from scrapper.models import Channel, Video
 from scrapper.limits import CHANNEL_VIDEOS_FETCH_COUNT
@@ -76,7 +77,8 @@ def get_videos_details(channel_ids):
     for channel_id in channel_ids:
         # Define the URL with parameters
         detailed_count = Video.objects.filter(
-            status=Video.DETAILED, channel__channel_id=channel_id
+            Q(status=Video.DETAILED) | Q(status=Video.FILTERED),
+            channel__channel_id=channel_id,
         ).count()
         if detailed_count >= CHANNEL_VIDEOS_FETCH_COUNT:
             print(

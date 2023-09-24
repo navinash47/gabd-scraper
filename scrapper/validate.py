@@ -57,13 +57,9 @@ def validate_brand_urls():
             except Exception as e:
                 brand_deal.status = BrandDeal.SCRAPED
                 brand_deal.save()
-                print(
-                    f"{timezone.now()} EXCEPTION in validate_brand_urls {brand_deal} INSIDE"
-                )
-                print(e)
-                print_exception(
-                    f"{timezone.now()} EXCEPTION in validate_brand_urls {brand_deal} INSIDE\n{e}"
-                )
+                log_string = f"{timezone.now()} EXCEPTION in validate_brand_urls {brand_deal} {brand_deal.initial_url}\n{e}"
+                print(log_string)
+                print_exception(log_string)
 
     except Exception as e:
         print(f"{timezone.now()} EXCEPTION in validate_brand_urls OUTSIDE")

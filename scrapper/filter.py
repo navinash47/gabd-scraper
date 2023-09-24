@@ -6,10 +6,12 @@ import backoff
 from django.utils import timezone
 
 from scrapper.models import Video, BrandDeal, BlackList
-from scrapper.utils import get_domain
+from scrapper.utils import get_domain, print_exception
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
+
+PREVIOUS_VIDEOS_COUNT = 10
 
 # Use GPT-3.5 and extract brand deal links
 system_prompt = "You help extract brand deal or sponsored segment links"
@@ -59,7 +61,7 @@ def create_brand_deal_links():
     detailed_videos = Video.objects.filter(
         status=Video.DETAILED,
         brand_deals__isnull=True,
-    )
+    ).order_by("-published_at")
     BATCH_SIZE = 100
     batches = [
         detailed_videos[i : i + BATCH_SIZE]
@@ -67,14 +69,32 @@ def create_brand_deal_links():
     ]
     for batch in batches:
         for video in batch:
+            # Optimization - if the next 10 videos of the channel don't have any brand deals, then skip this video
+            channel = video.channel
+            previous_videos = channel.videos.filter(
+                published_at__gte=video.published_at
+            ).order_by("published_at")[:PREVIOUS_VIDEOS_COUNT]
+            if previous_videos.count() == PREVIOUS_VIDEOS_COUNT:
+                brand_deals_count = BrandDeal.objects.filter(
+                    video__in=previous_videos
+                ).count()
+                if brand_deals_count == 0:
+                    log_string = (
+                        f"{timezone.now()} SKIPPING {video.video_id} for OPTIMIZATION"
+                    )
+                    print_exception(log_string)
+                    print(log_string)
+                    continue
+
+            # Extract brand deal links
             description = video.description
             # Find the first URL in the description using regex - http or https
             url_index = re.search(r"(?P<url>https?://[^\s]+)", description)
             if url_index is None:
                 continue
             url_index = url_index.start()
-            # Get 300 characters before and 500 after the URL
-            description = description[max(0, url_index - 300) : url_index + 500]
+            # Get upto 500 after the first URL
+            description = description[0 : url_index + 500]
             print(f"{timezone.now()} Extracting brand deal links for {video.video_id}")
             urls = extract_brand_deal_links(
                 description,
@@ -88,7 +108,6 @@ def create_brand_deal_links():
                 if not BlackList.objects.filter(domain=get_domain(url)).exists()
             ]
             print(timezone.now(), video.video_id, urls)
-            BrandDeal.objects.bulk_create(
-                [BrandDeal(video=video, initial_url=url) for url in urls]
-            )
+            for url in urls:
+                BrandDeal.objects.get_or_create(video=video, initial_url=url)
     detailed_videos.update(status=Video.FILTERED)
