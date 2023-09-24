@@ -1,6 +1,8 @@
 import uuid
 from django.db import models
 
+from scrapper.utils import get_domain
+
 
 class Channel(models.Model):
     CREATED = "C"  # Channel was created
@@ -38,7 +40,7 @@ class Channel(models.Model):
     has_cross_scraped = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.channel_id} - {self.title} - {self.status}"
+        return f"{self.channel_id} - {self.title} - {self.status} | Cross scraped: {self.has_cross_scraped}"
 
 
 class Video(models.Model):
@@ -122,7 +124,9 @@ class BrandDeal(models.Model):
         unique_together = ["video", "initial_url"]
 
     def __str__(self):
-        return f"{self.video.channel.title} | {self.initial_url}"
+        if self.final_url:
+            return f"{self.video.channel.title} | {get_domain(self.initial_url)} | {get_domain(self.final_url)}"
+        return f"{self.video.channel.title} | {get_domain(self.initial_url)}"
 
 
 class BlackList(models.Model):

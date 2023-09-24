@@ -4,7 +4,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
 from scrapper.models import Brand, BrandDeal, BlackList
-from scrapper.utils import get_domain
+from scrapper.utils import get_domain, print_exception
 
 
 def validate_brand_urls():
@@ -61,10 +61,16 @@ def validate_brand_urls():
                     f"{timezone.now()} EXCEPTION in validate_brand_urls {brand_deal} INSIDE"
                 )
                 print(e)
+                print_exception(
+                    f"{timezone.now()} EXCEPTION in validate_brand_urls {brand_deal} INSIDE\n{e}"
+                )
 
     except Exception as e:
         print(f"{timezone.now()} EXCEPTION in validate_brand_urls OUTSIDE")
         print(e)
+        print_exception(
+            f"{timezone.now()} EXCEPTION in validate_brand_urls OUTSIDE\n{e}"
+        )
 
     finally:
         # Close the WebDriver

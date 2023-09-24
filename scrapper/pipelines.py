@@ -8,6 +8,7 @@ from scrapper.details import get_videos_details
 from scrapper.filter import create_brand_deal_links
 from scrapper.validate import validate_brand_urls
 from scrapper.limits import TOTAL_CHANNELS_COUNT
+from scrapper.utils import print_exception
 
 CYCLES = 10
 
@@ -15,19 +16,21 @@ CYCLES = 10
 def get_channels_pipeline():
     if Channel.objects.count() >= TOTAL_CHANNELS_COUNT:
         # Don't scrape any more new channels
+        print(f"{timezone.now()} Total channels count reached")
         return
     for i in range(CYCLES):
-        print(f"{timezone.now()} Getting channels CYCLE {i}")
+        print(f"{timezone.now()} Getting new channels CYCLE {i}")
         # Get one video from every channel
         channels = Channel.objects.filter(
             has_cross_scraped=False, status=Channel.FETCHED
         ).order_by("-created_at")
+        print(
+            f"{timezone.now()} has_cross_scraped=False channels count: {channels.count()}"
+        )
         for channel in channels:
             video = channel.videos.first()
             if video is not None:
                 scrape_new_channels(video.video_id)
-                channel.has_cross_scraped = True
-                channel.save(update_fields=["has_cross_scraped"])
 
 
 def get_video_details_pipeline():
@@ -51,6 +54,9 @@ def get_video_details_pipeline():
         except Exception as e:
             print(f"{timezone.now()} Error in getting video details CYCLE {i}")
             print(e)
+            print_exception(
+                f"{timezone.now()} Error in getting video details CYCLE {i}\n{e}"
+            )
             Channel.objects.filter(channel_id__in=channel_ids).update(
                 status=Channel.PAUSED
             )

@@ -5,6 +5,7 @@ from django.utils import timezone
 
 from scrapper.models import Channel, Video
 from scrapper.limits import CHANNEL_VIDEOS_FETCH_COUNT
+from scrapper.utils import print_exception
 
 
 YOUTUBE_API_KEY = settings.YOUTUBE_API_KEY
@@ -15,7 +16,8 @@ BATCH_SIZE = 50
 # Use YouTube API to get details of a video
 def _get_videos_details_yt_api(video_ids: list):
     if len(video_ids) > BATCH_SIZE:
-        raise Exception("Batch size is too large")
+        print_exception(f"{timezone.now()} VIDEOS Batch size is too large")
+        raise Exception(f"{timezone.now()} VIDEOS Batch size is too large")
 
     base_url = f"https://youtube.googleapis.com/youtube/v3/videos"
     params = {
@@ -43,7 +45,8 @@ def _get_videos_details_yt_api(video_ids: list):
 
 def _get_channels_details_yt_api(channel_ids: list):
     if len(channel_ids) > BATCH_SIZE:
-        raise Exception("Batch size is too large")
+        print_exception(f"{timezone.now()} CHANNELS Batch size is too large")
+        raise Exception(f"{timezone.now()} CHANNELS Batch size is too large")
 
     base_url = f"https://youtube.googleapis.com/youtube/v3/channels"
     params = {
@@ -111,10 +114,18 @@ def get_videos_details(channel_ids):
                         category_id=snippet["categoryId"],
                         published_at=snippet["publishedAt"],
                         # Statistics
-                        view_count=video_data["statistics"]["viewCount"],
-                        like_count=video_data["statistics"]["likeCount"],
-                        favorite_count=video_data["statistics"]["favoriteCount"],
-                        comment_count=video_data["statistics"]["commentCount"],
+                        view_count=video_data["statistics"]["viewCount"]
+                        if "viewCount" in video_data["statistics"]
+                        else 0,
+                        like_count=video_data["statistics"]["likeCount"]
+                        if "likeCount" in video_data["statistics"]
+                        else 0,
+                        favorite_count=video_data["statistics"]["favoriteCount"]
+                        if "favoriteCount" in video_data["statistics"]
+                        else 0,
+                        comment_count=video_data["statistics"]["commentCount"]
+                        if "commentCount" in video_data["statistics"]
+                        else 0,
                         status=Video.DETAILED,
                         updated_at=timezone.now(),
                     )
@@ -142,7 +153,7 @@ def get_channels_details(channel_ids):
                         if "customUrl" in snippet
                         else None,
                         "thumbnail_url": snippet["thumbnails"]["default"]["url"],
-                        "country": snippet["country"],
+                        "country": snippet["country"] if "country" in snippet else None,
                         # Statistics
                         "view_count": channel_data["statistics"]["viewCount"],
                         "subscriber_count": channel_data["statistics"][

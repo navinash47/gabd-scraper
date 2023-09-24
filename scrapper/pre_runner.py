@@ -30,5 +30,5 @@ blacklist_domains = [
 ]
 
 for domain in blacklist_domains:
-    print(f"Creating BlackList domain {domain}")
+    print(f"{timezone.now()} Creating BlackList domain {domain}")
     BlackList.objects.get_or_create(domain=domain)
