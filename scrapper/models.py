@@ -37,10 +37,9 @@ class Channel(models.Model):
 
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=CREATED)
     updated_at = models.DateTimeField(auto_now=True)
-    has_cross_scraped = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.channel_id} - {self.title} - {self.status} | Cross scraped: {self.has_cross_scraped}"
+        return f"{self.channel_id} - {self.title} - {self.status}"
 
 
 class Video(models.Model):
@@ -116,6 +115,7 @@ class BrandDeal(models.Model):
 
     initial_url = models.URLField()
     final_url = models.URLField(null=True, blank=True)
+    page_title = models.TextField(null=True, blank=True)
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=INITIAL)
     updated_at = models.DateTimeField(auto_now=True)
 

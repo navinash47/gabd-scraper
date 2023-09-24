@@ -32,12 +32,14 @@ def validate_brand_urls():
                     print(f"{timezone.now()} Already scraped {brand_deal.initial_url}")
                     brand_deal.brand = already_scraped.brand
                     brand_deal.final_url = already_scraped.final_url
+                    brand_deal.page_title = already_scraped.page_title
                     brand_deal.status = BrandDeal.SCRAPED
                     brand_deal.save()
                     continue
                 driver.get(brand_deal.initial_url)
                 # Get the final URL after all redirects
                 final_url = driver.current_url
+                page_title = driver.title
                 print(f"{timezone.now()} Final URL {final_url}")
                 # Get the domain name
                 domain = get_domain(final_url)
@@ -51,6 +53,7 @@ def validate_brand_urls():
                 # Update the brand deal
                 brand_deal.brand = brand
                 brand_deal.final_url = final_url
+                brand_deal.page_title = page_title
                 brand_deal.status = BrandDeal.SCRAPED
                 brand_deal.save()
 

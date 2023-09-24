@@ -65,15 +65,9 @@ def scrape_new_channels(root_video_id: str):
         channels_list = [
             channel_id
             for channel_id in channels_list
-            if not Channel.objects.filter(
-                channel_id=channel_id, status=Channel.FETCHED
-            ).exists()
+            if not Channel.objects.filter(channel_id=channel_id).exists()
         ]
         get_channels_details(channels_list)
-        root_video = Video.objects.get(video_id=root_video_id)
-        root_channel = root_video.channel
-        root_channel.has_cross_scraped = True
-        root_channel.save(update_fields=["has_cross_scraped"])
 
     except Exception as e:
         print(f"{timezone.now()} Exception in scrape_new_channels")

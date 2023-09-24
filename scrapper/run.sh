@@ -12,6 +12,6 @@ for ((i=1; i<=$num_loops; i++)); do
     python manage.py shell < scrapper/runners/04_validate_deals.py &
     wait
     python manage.py shell < scrapper/post_runner.py | tee outputs/output_post_runner.txt
-    echo "----------------------ERRORS----------------------"
-    cat error.txt
 done
+echo "----------------------ERRORS----------------------"
+cat error.txt

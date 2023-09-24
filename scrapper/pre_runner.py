@@ -49,6 +49,7 @@ blacklist_domains = [
     "spotify.com",
     "lexfridman.com",
     "hubermanlab.com",
+    "peterattiamd.com",
 ]
 
 for domain in blacklist_domains:

@@ -22,11 +22,9 @@ def get_channels_pipeline():
     #     print(f"{timezone.now()} Getting new channels CYCLE {i}")
     print(f"{timezone.now()} Getting new channels")
     # Get one video from every channel
-    channels = Channel.objects.filter(
-        has_cross_scraped=False, status=Channel.FETCHED
-    ).order_by("-created_at")
+    channels = Channel.objects.filter(status=Channel.FETCHED).order_by("created_at")
     print(
-        f"{timezone.now()} has_cross_scraped=False channels count: {channels.count()}"
+        f"{timezone.now()} Cross scraping {channels.count()} channels for new channels"
     )
     for channel in channels:
         video = channel.videos.first()
