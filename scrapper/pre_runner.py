@@ -5,6 +5,7 @@ from scrapper.details import get_channels_details
 
 initial_channel_ids = [
     "UCSHZKyawb77ixDdsGog4iWA",  # Lex Fridman
+    "UCsBjURrPoezykLs9EqgamOA",  # Fireship
     "UCHnyfMqiRRG1u-2MsSQLbXA",  # Veritasium
     "UCP5tjEmvPItGyLhmjdwP7Ww",  # RealLifeLore
     "UCbiGcwDWZjz05njNPrJU7jA",  # ExplainingComputers
@@ -34,7 +35,7 @@ print(f"{timezone.now()} Creating initial channels")
 get_channels_details(initial_channel_ids)
 
 # BlackList
-from scrapper.models import BlackList
+from scrapper.models import BlackList, Brand
 
 blacklist_domains = [
     "youtube.com",
@@ -55,3 +56,8 @@ blacklist_domains = [
 for domain in blacklist_domains:
     print(f"{timezone.now()} Creating BlackList domain {domain}")
     BlackList.objects.get_or_create(domain=domain)
+
+# Delete all brands that have a blacklisted domain
+print(f"{timezone.now()} Deleting brands with blacklisted domains")
+blacklist_domains = BlackList.objects.values_list("domain", flat=True)
+Brand.objects.filter(domain__in=blacklist_domains).delete()
