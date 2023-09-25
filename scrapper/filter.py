@@ -12,6 +12,7 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
 PREVIOUS_VIDEOS_COUNT = 10
+VIDEOS_BATCH_SIZE = 100
 
 # Use GPT-3.5 and extract brand deal links
 system_prompt = "You help extract brand deal or sponsored segment links"
@@ -62,10 +63,10 @@ def create_brand_deal_links():
         status=Video.DETAILED,
         brand_deals__isnull=True,
     ).order_by("-published_at")
-    BATCH_SIZE = 100
+
     batches = [
-        detailed_videos[i : i + BATCH_SIZE]
-        for i in range(0, len(detailed_videos), BATCH_SIZE)
+        detailed_videos[i : i + VIDEOS_BATCH_SIZE]
+        for i in range(0, len(detailed_videos), VIDEOS_BATCH_SIZE)
     ]
     for batch in batches:
         for video in batch:

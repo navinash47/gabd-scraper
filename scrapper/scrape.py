@@ -80,7 +80,7 @@ def scrape_new_channels(root_video_id: str):
 
 
 def _get_video_ids(driver, prefix: str):
-    tb_elements = driver.find_elements(By.ID, "thumbnail")
+    tb_elements = driver.find_elements(By.XPATH, "//a[@id='thumbnail']")
     video_urls = []
     for tb_element in tb_elements:
         video_url = tb_element.get_attribute("href")

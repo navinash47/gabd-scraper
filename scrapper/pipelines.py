@@ -10,16 +10,12 @@ from scrapper.validate import validate_brand_urls
 from scrapper.limits import TOTAL_CHANNELS_COUNT
 from scrapper.utils import print_exception
 
-# CYCLES = 10
-
 
 def get_channels_pipeline():
     if Channel.objects.count() >= TOTAL_CHANNELS_COUNT:
         # Don't scrape any more new channels
         print(f"{timezone.now()} Total channels count reached")
         return
-    # for i in range(CYCLES):
-    #     print(f"{timezone.now()} Getting new channels CYCLE {i}")
     print(f"{timezone.now()} Getting new channels")
     # Get one video from every channel
     channels = Channel.objects.filter(status=Channel.FETCHED).order_by("created_at")
@@ -33,8 +29,6 @@ def get_channels_pipeline():
 
 
 def get_video_details_pipeline():
-    # for i in range(CYCLES):
-    #     print(f"{timezone.now()} Getting video details CYCLE {i}")
     print(f"{timezone.now()} Getting video details")
     channel_ids = list(
         Channel.objects.filter(Q(status=Channel.FETCHED) | Q(status=Channel.PAUSED))
@@ -50,23 +44,17 @@ def get_video_details_pipeline():
             status=Channel.COMPLETED
         )
     except Exception as e:
-        print(f"{timezone.now()} Error in getting video details CYCLE {i}")
+        print(f"{timezone.now()} Error in getting video details CYCLE")
         print(e)
-        print_exception(
-            f"{timezone.now()} Error in getting video details CYCLE {i}\n{e}"
-        )
+        print_exception(f"{timezone.now()} Error in getting video details CYCLE\n{e}")
         Channel.objects.filter(channel_id__in=channel_ids).update(status=Channel.PAUSED)
 
 
 def get_brand_deals_pipeline():
-    # for i in range(CYCLES):
-    #     print(f"{timezone.now()} Getting brand deals CYCLE {i}")
     print(f"{timezone.now()} Getting brand deals")
     create_brand_deal_links()
 
 
 def validate_brand_deals_pipeline():
-    # for i in range(CYCLES):
-    #     print(f"{timezone.now()} Validating brand deals CYCLE {i}")
     print(f"{timezone.now()} Validating brand deals")
     validate_brand_urls()

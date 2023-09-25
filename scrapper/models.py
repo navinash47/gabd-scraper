@@ -1,5 +1,6 @@
 import uuid
 from django.db import models
+from django.utils import timezone
 
 from scrapper.utils import get_domain
 
@@ -18,7 +19,7 @@ class Channel(models.Model):
         (COMPLETED, "Completed"),
     ]
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
 
     channel_id = models.CharField(max_length=200)
     title = models.CharField(max_length=200, null=True, blank=True)
@@ -56,7 +57,7 @@ class Video(models.Model):
     channel = models.ForeignKey(
         Channel, on_delete=models.CASCADE, related_name="videos", null=True
     )
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
 
     video_id = models.CharField(max_length=200, unique=True)
     title = models.CharField(max_length=200, null=True, blank=True)
@@ -86,7 +87,7 @@ class Video(models.Model):
 
 class Brand(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
 
     domain = models.CharField(max_length=200, unique=True)
     name = models.CharField(max_length=200, null=True, blank=True)
@@ -111,7 +112,7 @@ class BrandDeal(models.Model):
     video = models.ForeignKey(
         Video, on_delete=models.CASCADE, related_name="brand_deals"
     )
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
 
     initial_url = models.URLField()
     final_url = models.URLField(null=True, blank=True)
@@ -131,7 +132,7 @@ class BrandDeal(models.Model):
 
 class BlackList(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
 
     domain = models.CharField(max_length=200, unique=True)
 

@@ -76,19 +76,10 @@ def _get_channels_details_yt_api(channel_ids: list):
 def get_videos_details(channel_ids):
     for channel_id in channel_ids:
         # Define the URL with parameters
-        detailed_count = Video.objects.filter(
-            Q(status=Video.DETAILED) | Q(status=Video.FILTERED),
-            channel__channel_id=channel_id,
-        ).count()
-        if detailed_count >= CHANNEL_VIDEOS_FETCH_COUNT:
-            print(
-                f"{timezone.now()} SKIPPING {channel_id} as it has already been FULLY DETAILED"
-            )
-            continue
         all_video_ids = list(
-            Video.objects.filter(status=Video.SCRAPED, channel__channel_id=channel_id)[
-                : CHANNEL_VIDEOS_FETCH_COUNT - detailed_count
-            ].values_list("video_id", flat=True)
+            Video.objects.filter(
+                status=Video.SCRAPED, channel__channel_id=channel_id
+            ).values_list("video_id", flat=True)
         )
         # Divide the video ids into batches of 50
         batches = [
