@@ -3,7 +3,6 @@ from django.utils import timezone
 from scrapper.limits import (
     TOTAL_CHANNELS_COUNT,
     CHANNEL_IGNORE_VIDEO_COUNT,
-    CHANNEL_VIDEOS_FETCH_COUNT,
 )
 from scrapper.models import Channel, Video, Brand, BrandDeal, BlackList
 
@@ -17,4 +16,3 @@ print(f"{timezone.now()} Total BlackList: {BlackList.objects.count()}")
 print("----------------------------------------")
 print(f"{timezone.now()} TOTAL_CHANNELS_COUNT: {TOTAL_CHANNELS_COUNT}")
 print(f"{timezone.now()} CHANNEL_IGNORE_VIDEO_COUNT: {CHANNEL_IGNORE_VIDEO_COUNT}")
-print(f"{timezone.now()} CHANNEL_VIDEOS_FETCH_COUNT: {CHANNEL_VIDEOS_FETCH_COUNT}")

@@ -13,12 +13,16 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 import os
 from pathlib import Path
 
-if os.getenv("CI_CD_STAGE", None) is None:
-    print("LOADING ENV")
-    # Only loads in dev environment
-    from dotenv import load_dotenv
 
-    load_dotenv(dotenv_path=".env")
+print("LOADING ENV")
+# Only loads in dev environment
+from dotenv import load_dotenv
+
+load_dotenv(dotenv_path=".env")
+
+CI_CD_STAGE = os.getenv("CI_CD_STAGE", None)
+DEV_STAGE = "dev"
+PROD_STAGE = "prod"
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -84,25 +88,24 @@ WSGI_APPLICATION = "yt_scrapper.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-# TODO use supabase
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+if CI_CD_STAGE == DEV_STAGE:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
     }
-}
-
-
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.postgresql",
-#         "NAME": os.environ["RDS_DB_NAME"],
-#         "USER": os.environ["RDS_USERNAME"],
-#         "PASSWORD": os.environ["RDS_PASSWORD"],
-#         "HOST": os.environ["RDS_HOSTNAME"],
-#         "PORT": os.environ["RDS_PORT"],
-#     }
-# }
+elif CI_CD_STAGE == PROD_STAGE:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ["RDS_DB_NAME"],
+            "USER": os.environ["RDS_USERNAME"],
+            "PASSWORD": os.environ["RDS_PASSWORD"],
+            "HOST": os.environ["RDS_HOSTNAME"],
+            "PORT": os.environ["RDS_PORT"],
+        }
+    }
 
 
 # Password validation

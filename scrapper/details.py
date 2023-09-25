@@ -5,8 +5,8 @@ from django.utils import timezone
 from django.db.models import Q
 
 from scrapper.models import Channel, Video
-from scrapper.limits import CHANNEL_VIDEOS_FETCH_COUNT
 from scrapper.utils import print_exception
+from scrapper.limits import TOTAL_CHANNELS_COUNT
 
 
 YOUTUBE_API_KEY = settings.YOUTUBE_API_KEY
@@ -75,6 +75,10 @@ def _get_channels_details_yt_api(channel_ids: list):
 
 def get_videos_details(channel_ids):
     for channel_id in channel_ids:
+        if Channel.objects.count() >= TOTAL_CHANNELS_COUNT:
+            # Don't scrape any more new channels
+            print(f"{timezone.now()} Total channels count reached")
+            return
         # Define the URL with parameters
         all_video_ids = list(
             Video.objects.filter(
