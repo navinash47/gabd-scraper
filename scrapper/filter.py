@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from scrapper.models import Video, BrandDeal, BlackList
 from scrapper.utils import get_domain, print_exception
-from scrapper.limits import MAX_WORKERS, MAX_VIDEOS_PER_CHANNEL
+from scrapper.limits import MAX_OPENAI_WORKERS, MAX_VIDEOS_PER_CHANNEL
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
@@ -75,7 +75,7 @@ def create_brand_deal_links():
         for i in range(0, len(detailed_videos), VIDEOS_BATCH_SIZE)
     ]
     for batch in batches:
-        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        with ThreadPoolExecutor(max_workers=MAX_OPENAI_WORKERS) as executor:
             futures_dict = {}
             for video in batch:
                 if (
