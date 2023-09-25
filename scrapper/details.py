@@ -2,7 +2,6 @@ import requests
 
 from django.conf import settings
 from django.utils import timezone
-from django.db.models import Q
 
 from scrapper.models import Channel, Video
 from scrapper.utils import print_exception
@@ -75,7 +74,11 @@ def _get_channels_details_yt_api(channel_ids: list):
 
 def get_videos_details(channel_ids):
     for channel_id in channel_ids:
-        if Channel.objects.count() >= TOTAL_CHANNELS_COUNT:
+        # If TOTAL_CHANNELS_COUNT number of channels ha
+        if (
+            Channel.objects.filter(status=Channel.COMPLETED).count()
+            >= TOTAL_CHANNELS_COUNT
+        ):
             # Don't scrape any more new channels
             print(f"{timezone.now()} Total channels count reached")
             return

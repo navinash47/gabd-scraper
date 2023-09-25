@@ -2,11 +2,13 @@ import os
 import re
 import openai
 import backoff
+from concurrent.futures import ThreadPoolExecutor
 
 from django.utils import timezone
 
 from scrapper.models import Video, BrandDeal, BlackList
 from scrapper.utils import get_domain, print_exception
+from scrapper.limits import MAX_WORKERS, MAX_VIDEOS_PER_CHANNEL
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
@@ -27,9 +29,13 @@ Here's the description
 """
 
 
+def on_backoff(details):
+    print(f"{timezone.now()} Backing off {details['wait']} seconds")
+
+
 # 3,500 RPM - Paid users after 48 hours
 # https://platform.openai.com/docs/guides/rate-limits/overview
-@backoff.on_exception(backoff.expo, openai.error.RateLimitError)  # TODO test
+@backoff.on_exception(backoff.expo, openai.error.RateLimitError, on_backoff=on_backoff)
 def extract_brand_deal_links(description):
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
@@ -69,46 +75,63 @@ def create_brand_deal_links():
         for i in range(0, len(detailed_videos), VIDEOS_BATCH_SIZE)
     ]
     for batch in batches:
-        for video in batch:
-            # Optimization - if the next 10 videos of the channel don't have any brand deals, then skip this video
-            channel = video.channel
-            previous_videos = channel.videos.filter(
-                published_at__gte=video.published_at
-            ).order_by("published_at")[:PREVIOUS_VIDEOS_COUNT]
-            if previous_videos.count() == PREVIOUS_VIDEOS_COUNT:
-                brand_deals_count = BrandDeal.objects.filter(
-                    video__in=previous_videos
-                ).count()
-                if brand_deals_count == 0:
-                    log_string = (
-                        f"{timezone.now()} SKIPPING {video.video_id} for OPTIMIZATION"
-                    )
-                    print_exception(log_string)
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            futures_dict = {}
+            for video in batch:
+                if (
+                    video.channel.videos.filter(status=Video.FILTERED).count()
+                    > MAX_VIDEOS_PER_CHANNEL
+                ):
+                    # Skip this video if the channel already has a filtered video
+                    log_string = f"{timezone.now()} SKIPPING {video.video_id} for MAX VIDEOS PER CHANNEL"
                     print(log_string)
+                    print_exception(log_string)
                     continue
+                # Optimization - if the next 10 videos of the channel don't have any brand deals, then skip this video
+                channel = video.channel
+                previous_videos = channel.videos.filter(
+                    published_at__gte=video.published_at
+                ).order_by("published_at")[:PREVIOUS_VIDEOS_COUNT]
+                if previous_videos.count() == PREVIOUS_VIDEOS_COUNT:
+                    brand_deals_count = BrandDeal.objects.filter(
+                        video__in=previous_videos
+                    ).count()
+                    if brand_deals_count == 0:
+                        log_string = f"{timezone.now()} SKIPPING {video.video_id} for OPTIMIZATION"
+                        print_exception(log_string)
+                        print(log_string)
+                        continue
 
-            # Extract brand deal links
-            description = video.description
-            # Find the first URL in the description using regex - http or https
-            url_index = re.search(r"(?P<url>https?://[^\s]+)", description)
-            if url_index is None:
-                continue
-            url_index = url_index.start()
-            # Get upto 500 after the first URL
-            description = description[0 : url_index + 500]
-            print(f"{timezone.now()} Extracting brand deal links for {video.video_id}")
-            urls = extract_brand_deal_links(
-                description,
-            )  # The first 2000 characters
-            # Remove duplicates
-            urls = list(set(urls))
-            # Filter the domains that are blacklisted
-            urls = [
-                url
-                for url in urls
-                if not BlackList.objects.filter(domain=get_domain(url)).exists()
-            ]
-            print(timezone.now(), video.video_id, urls)
-            for url in urls:
-                BrandDeal.objects.get_or_create(video=video, initial_url=url)
-    detailed_videos.update(status=Video.FILTERED)
+                # Extract brand deal links
+                description = video.description
+                # Find the first URL in the description using regex - http or https
+                url_index = re.search(r"(?P<url>https?://[^\s]+)", description)
+                if url_index is None:
+                    continue
+                url_index = url_index.start()
+                # Get upto 500 after the first URL
+                description = description[0 : url_index + 500]
+                print(
+                    f"{timezone.now()} Extracting brand deal links for {video.video_id}"
+                )
+                futures_dict[video] = executor.submit(
+                    extract_brand_deal_links, description
+                )
+
+            for video, future in futures_dict.items():
+                urls = future.result()
+                # Remove duplicates
+                urls = list(set(urls))
+                # Filter the domains that are blacklisted
+                urls = [
+                    url
+                    for url in urls
+                    if not BlackList.objects.filter(domain=get_domain(url)).exists()
+                ]
+                print(timezone.now(), video.video_id, urls)
+                for url in urls:
+                    BrandDeal.objects.get_or_create(video=video, initial_url=url)
+                # Update the video status
+                video.status = Video.FILTERED
+                video.save(update_fields=["status"])
+    # detailed_videos.update(status=Video.FILTERED)
