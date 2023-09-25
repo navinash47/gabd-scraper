@@ -47,10 +47,12 @@ class Video(models.Model):
     SCRAPED = "S"  # Got a video_id
     DETAILED = "D"  # Used YouTube API to get details
     FILTERED = "F"  # Used GPT-3 to filter brand deal links
+    SKIPPED = "K"  # Skipped because of OPTIMIZATION in create_brand_deal_links
     STATUS_CHOICES = [
         (SCRAPED, "Scraped"),
         (DETAILED, "Detailed"),
         (FILTERED, "Filtered"),
+        (SKIPPED, "Skipped"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

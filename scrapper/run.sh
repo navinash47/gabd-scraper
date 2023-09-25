@@ -1,7 +1,7 @@
 #!/bin/bash
 # Run this atleast 4 times
 rm error.txt
-num_loops=4
+num_loops=10
 
 for ((i=1; i<=$num_loops; i++)); do
     echo "----------------------LOOP $i----------------------"

@@ -83,6 +83,8 @@ def create_brand_deal_links():
                     > MAX_VIDEOS_PER_CHANNEL
                 ):
                     # Skip this video if the channel already has a filtered video
+                    video.status = Video.SKIPPED
+                    video.save(update_fields=["status"])
                     log_string = f"{timezone.now()} SKIPPING {video.video_id} for MAX VIDEOS PER CHANNEL"
                     print(log_string)
                     print_exception(log_string)
