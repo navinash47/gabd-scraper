@@ -116,8 +116,8 @@ class BrandDeal(models.Model):
     )
     created_at = models.DateTimeField(default=timezone.now)
 
-    initial_url = models.URLField()
-    final_url = models.URLField(null=True, blank=True)
+    initial_url = models.TextField()
+    final_url = models.TextField(null=True, blank=True)
     page_title = models.TextField(null=True, blank=True)
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=INITIAL)
     updated_at = models.DateTimeField(auto_now=True)

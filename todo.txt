@@ -1,0 +1,4 @@
+1. Delete Brands with incomplete domains - after . split, less than 2 elements
+2. Delete all Brands with blacklisted domains
+3. Delete all Brands with . ending
+4. Get all domains from the videos description. If a brand deal's domain doesn't appear in the description, delete it

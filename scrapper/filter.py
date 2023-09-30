@@ -82,10 +82,9 @@ def create_brand_deal_links():
                     video.channel.videos.filter(status=Video.FILTERED).count()
                     > MAX_VIDEOS_PER_CHANNEL
                 ):
-                    # Skip this video if the channel already has a filtered video
-                    video.status = Video.SKIPPED
-                    video.save(update_fields=["status"])
-                    log_string = f"{timezone.now()} SKIPPING {video.video_id} for MAX VIDEOS PER CHANNEL"
+                    log_string = (
+                        f"{timezone.now()} MAX VIDEOS PER CHANNEL {video.video_id}"
+                    )
                     print(log_string)
                     print_exception(log_string)
                     continue
@@ -99,8 +98,9 @@ def create_brand_deal_links():
                         video__in=previous_videos
                     ).count()
                     if brand_deals_count == 0:
+                        video.status = Video.SKIPPED
+                        video.save(update_fields=["status"])
                         log_string = f"{timezone.now()} SKIPPING {video.video_id} for OPTIMIZATION"
-                        print_exception(log_string)
                         print(log_string)
                         continue
 
@@ -111,8 +111,8 @@ def create_brand_deal_links():
                 if url_index is None:
                     continue
                 url_index = url_index.start()
-                # Get upto 500 after the first URL
-                description = description[0 : url_index + 500]
+                # Limit the description to 2000 characters after the first URL
+                description = description[0 : url_index + 2000]
                 print(
                     f"{timezone.now()} Extracting brand deal links for {video.video_id}"
                 )
