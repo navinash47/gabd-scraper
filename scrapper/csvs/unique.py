@@ -1,7 +1,7 @@
 import csv
 from scrapper.models import BrandDeal
 
-from scrapper.csvs.utils import ignore_brand_domains
+from scrapper.csvs.utils import accept_domain
 
 # Step 2: Create the QuerySet
 brand_deals = BrandDeal.objects.select_related("brand", "video", "video__channel").all()
@@ -32,7 +32,7 @@ with open("bd.tsv", "w", newline="") as tsvfile:
         brand_initial_link = deal.initial_url
         brand_final_link = deal.final_url
 
-        if not brand_domain or brand_domain in ignore_brand_domains:
+        if not brand_domain or not accept_domain(brand_domain):
             continue
 
         # Write to TSV

@@ -8,7 +8,11 @@ def get_domain(url):
     pattern = r"(?:https?://)?([^/]+)"
     match = re.search(pattern, url)
     if match:
-        return match.group(1)
+        domain = match.group(1)
+        # Remove 'www.' if it's in the domain
+        if domain.startswith("www."):
+            domain = domain[4:]
+        return domain
     return None
 
 

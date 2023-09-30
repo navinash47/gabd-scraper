@@ -7,3 +7,4 @@ outputs
 error.txt
 parallel.py
 *_tmp.pth
+*.tsv

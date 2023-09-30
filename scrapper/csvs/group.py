@@ -2,7 +2,7 @@ import csv
 from django.db.models import Count
 from scrapper.models import BrandDeal
 
-from scrapper.csvs.utils import ignore_brand_domains
+from scrapper.csvs.utils import accept_domain
 
 
 # Step 2: Create QuerySet
@@ -27,7 +27,7 @@ with open("c_bd.tsv", "w", newline="") as tsvfile:
         brand_domain = record["brand__domain"]
         deals_count = record["deals_count"]
 
-        if not brand_domain or brand_domain in ignore_brand_domains:
+        if not brand_domain or not accept_domain(brand_domain):
             continue
 
         # Write to TSV
