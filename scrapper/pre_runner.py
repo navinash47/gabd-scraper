@@ -98,6 +98,9 @@ blacklist_domains = [
     "www.medal.tv",
     "goo.gl",
     "spoti.fi",
+    "discord.gg",
+    "discord.com",
+    "www.discord.com",
 ]
 
 for domain in blacklist_domains:

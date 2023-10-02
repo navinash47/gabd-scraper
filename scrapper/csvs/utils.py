@@ -6,6 +6,7 @@ ignore_brand_domains = [
     "www.amazon.co.uk",
     "geni.us",
     "www.aliexpress.com",
+    "discord.com",
 ]
 
 # Ignore domains that contain these words
