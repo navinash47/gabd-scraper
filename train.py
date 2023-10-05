@@ -6,24 +6,24 @@ from fastai.tabular.all import *
 from fastai.collab import *
 
 
-def add_dict_to_channels_json(channels_dict):
+def add_channel_to_channels_json(channel_id, brands):
     if not os.path.exists("channels.json"):
         with open("channels.json", "x") as f:
             json.dump({}, f)
     with open("channels.json", "r+") as f:
         data = json.load(f)
-        data.update(channels_dict)
+        data[channel_id] = brands
         f.seek(0)
         json.dump(data, f)
 
 
-def add_dict_to_brands_json(brands_dict):
+def add_brand_to_brands_json(brand_domain, channels):
     if not os.path.exists("brands.json"):
         with open("brands.json", "x") as f:
             json.dump({}, f)
     with open("brands.json", "r+") as f:
         data = json.load(f)
-        data.update(brands_dict)
+        data[brand_domain] = channels
         f.seek(0)
         json.dump(data, f)
 
@@ -118,8 +118,9 @@ with ThreadPoolExecutor(max_workers=NUM_WORKERS) as executor:
         )
 
     for channel_id, future in channels_brands_dict.items():
-        channels_brands_dict[channel_id] = future.result()
-    add_dict_to_channels_json(channels_brands_dict)
+        brands = future.result()
+        add_channel_to_channels_json(channel_id, brands)
+
 
 brands_channels_dict = {}
 with ThreadPoolExecutor(max_workers=NUM_WORKERS) as executor:
@@ -130,5 +131,5 @@ with ThreadPoolExecutor(max_workers=NUM_WORKERS) as executor:
         )
 
     for brand_domain, future in brands_channels_dict.items():
-        brands_channels_dict[brand_domain] = future.result()
-    add_dict_to_brands_json(brands_channels_dict)
+        channels = future.result()
+        add_brand_to_brands_json(brand_domain, channels)
