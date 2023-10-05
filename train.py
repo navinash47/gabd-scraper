@@ -2,6 +2,20 @@ from fastai.tabular.all import *
 from fastai.collab import *
 
 
+def add_to_channels_json(channel_id, brand_domains):
+    with open("channels.json", "w+") as f:
+        data = json.load(f)
+        data[channel_id] = brand_domains
+        json.dump(data, f)
+
+
+def add_to_brands_json(brand_domain, channel_ids):
+    with open("brands.json", "w+") as f:
+        data = json.load(f)
+        data[brand_domain] = channel_ids
+        json.dump(data, f)
+
+
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
@@ -33,24 +47,54 @@ for num_epochs in [5, 10, 20, 30]:
     print("#epochs:", num_epochs)
     dt_learner.fit_one_cycle(num_epochs, 3e-2, wd=0.1)
 
-single_channel = ratings["channel_id"].unique()[0]
-total_brands = ratings["brand_domain"].unique()
+all_channel_ids = ratings["channel_id"].unique()
+all_brand_domains = ratings["brand_domain"].unique()
 
-channel_brands_not_seen = [
-    (single_channel, brand)
-    for brand in total_brands
-    if ratings[
-        (ratings["channel_id"] == single_channel) & (ratings["brand_domain"] == brand)
-    ].empty
-]
-channel_brands_not_seen_df = pd.DataFrame(
-    channel_brands_not_seen, columns=["channel_id", "brand_domain"]
-)
+for channel_id in all_channel_ids:
+    print("Channel:", channel_id)
+    channel_brands_not_seen = [
+        (channel_id, brand)
+        for brand in all_brand_domains
+        if ratings[
+            (ratings["channel_id"] == channel_id) & (ratings["brand_domain"] == brand)
+        ].empty
+    ]
+    channel_brands_not_seen_df = pd.DataFrame(
+        channel_brands_not_seen, columns=["channel_id", "brand_domain"]
+    )
 
-channel_brands_not_seen_dl = dls.test_dl(channel_brands_not_seen_df)
-preds, _ = dt_learner.get_preds(dl=channel_brands_not_seen_dl)
+    channel_brands_not_seen_dl = dls.test_dl(channel_brands_not_seen_df)
+    preds, _ = dt_learner.get_preds(dl=channel_brands_not_seen_dl)
 
-# Show the channel brands not seen and predicted ratings
-channel_brands_not_seen_df["pred_rating"] = preds
-channel_brands_not_seen_df.sort_values("pred_rating", ascending=False, inplace=True)
-channel_brands_not_seen_df.head(10)
+    # Show the channel brands not seen and predicted ratings
+    channel_brands_not_seen_df["pred_rating"] = preds
+    channel_brands_not_seen_df.sort_values("pred_rating", ascending=False, inplace=True)
+    channel_brands_not_seen_df.head(10)
+    add_to_channels_json(
+        channel_id, channel_brands_not_seen_df["brand_domain"].head(10).tolist()
+    )
+
+for brand_domain in all_brand_domains:
+    print("Brand:", brand_domain)
+    brand_channels_not_seen = [
+        (channel, brand_domain)
+        for channel in all_channel_ids
+        if ratings[
+            (ratings["channel_id"] == channel)
+            & (ratings["brand_domain"] == brand_domain)
+        ].empty
+    ]
+    brand_channels_not_seen_df = pd.DataFrame(
+        brand_channels_not_seen, columns=["channel_id", "brand_domain"]
+    )
+
+    brand_channels_not_seen_dl = dls.test_dl(brand_channels_not_seen_df)
+    preds, _ = dt_learner.get_preds(dl=brand_channels_not_seen_dl)
+
+    # Show the brand channels not seen and predicted ratings
+    brand_channels_not_seen_df["pred_rating"] = preds
+    brand_channels_not_seen_df.sort_values("pred_rating", ascending=False, inplace=True)
+    brand_channels_not_seen_df.head(10)
+    add_to_brands_json(
+        brand_domain, brand_channels_not_seen_df["channel_id"].head(10).tolist()
+    )
