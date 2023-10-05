@@ -1,27 +1,29 @@
 import os
 import json
+from concurrent.futures import ThreadPoolExecutor
+
 from fastai.tabular.all import *
 from fastai.collab import *
 
 
-def add_to_channels_json(channel_id, brand_domains):
+def add_dict_to_channels_json(channels_dict):
     if not os.path.exists("channels.json"):
         with open("channels.json", "x") as f:
             json.dump({}, f)
     with open("channels.json", "r+") as f:
         data = json.load(f)
-        data[channel_id] = brand_domains
+        data.update(channels_dict)
         f.seek(0)
         json.dump(data, f)
 
 
-def add_to_brands_json(brand_domain, channel_ids):
+def add_dict_to_brands_json(brands_dict):
     if not os.path.exists("brands.json"):
         with open("brands.json", "x") as f:
             json.dump({}, f)
     with open("brands.json", "r+") as f:
         data = json.load(f)
-        data[brand_domain] = channel_ids
+        data.update(brands_dict)
         f.seek(0)
         json.dump(data, f)
 
@@ -57,11 +59,8 @@ for num_epochs in [5, 10, 20, 30]:
     print("#epochs:", num_epochs)
     dt_learner.fit_one_cycle(num_epochs, 3e-2, wd=0.1)
 
-all_channel_ids = ratings["channel_id"].unique()
-all_brand_domains = ratings["brand_domain"].unique()
 
-for channel_id, index in zip(all_channel_ids, range(len(all_channel_ids))):
-    print("Channel:", channel_id, index + 1, "/", len(all_channel_ids))
+def get_channel_preds(channel_id):
     channel_brands_not_seen = [
         (channel_id, brand)
         for brand in all_brand_domains
@@ -80,12 +79,10 @@ for channel_id, index in zip(all_channel_ids, range(len(all_channel_ids))):
     channel_brands_not_seen_df["pred_rating"] = preds
     channel_brands_not_seen_df.sort_values("pred_rating", ascending=False, inplace=True)
     print(channel_brands_not_seen_df.head(10))
-    add_to_channels_json(
-        channel_id, channel_brands_not_seen_df["brand_domain"].head(10).tolist()
-    )
+    return channel_brands_not_seen_df["brand_domain"].head(10).tolist()
 
-for brand_domain, index in zip(all_brand_domains, range(len(all_brand_domains))):
-    print("Brand:", brand_domain, index + 1, "/", len(all_brand_domains))
+
+def get_brand_preds(brand_domain):
     brand_channels_not_seen = [
         (channel, brand_domain)
         for channel in all_channel_ids
@@ -105,6 +102,33 @@ for brand_domain, index in zip(all_brand_domains, range(len(all_brand_domains)))
     brand_channels_not_seen_df["pred_rating"] = preds
     brand_channels_not_seen_df.sort_values("pred_rating", ascending=False, inplace=True)
     print(brand_channels_not_seen_df.head(10))
-    add_to_brands_json(
-        brand_domain, brand_channels_not_seen_df["channel_id"].head(10).tolist()
-    )
+    return brand_channels_not_seen_df["channel_id"].head(10).tolist()
+
+
+all_channel_ids = ratings["channel_id"].unique()[0:10]
+all_brand_domains = ratings["brand_domain"].unique()
+NUM_WORKERS = 4
+
+channels_brands_dict = {}
+with ThreadPoolExecutor(max_workers=NUM_WORKERS) as executor:
+    for channel_id, index in zip(all_channel_ids, range(len(all_channel_ids))):
+        print("Channel:", channel_id, index + 1, "/", len(all_channel_ids))
+        channels_brands_dict[channel_id] = executor.submit(
+            get_channel_preds, channel_id
+        )
+
+    for channel_id, future in channels_brands_dict.items():
+        channels_brands_dict[channel_id] = future.result()
+    add_dict_to_channels_json(channels_brands_dict)
+
+brands_channels_dict = {}
+with ThreadPoolExecutor(max_workers=NUM_WORKERS) as executor:
+    for brand_domain, index in zip(all_brand_domains, range(len(all_brand_domains))):
+        print("Brand:", brand_domain, index + 1, "/", len(all_brand_domains))
+        brands_channels_dict[brand_domain] = executor.submit(
+            get_brand_preds, brand_domain
+        )
+
+    for brand_domain, future in brands_channels_dict.items():
+        brands_channels_dict[brand_domain] = future.result()
+    add_dict_to_brands_json(brands_channels_dict)
