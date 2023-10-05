@@ -1,18 +1,28 @@
+import os
+import json
 from fastai.tabular.all import *
 from fastai.collab import *
 
 
 def add_to_channels_json(channel_id, brand_domains):
-    with open("channels.json", "w+") as f:
+    if not os.path.exists("channels.json"):
+        with open("channels.json", "x") as f:
+            json.dump({}, f)
+    with open("channels.json", "r+") as f:
         data = json.load(f)
         data[channel_id] = brand_domains
+        f.seek(0)
         json.dump(data, f)
 
 
 def add_to_brands_json(brand_domain, channel_ids):
-    with open("brands.json", "w+") as f:
+    if not os.path.exists("brands.json"):
+        with open("brands.json", "x") as f:
+            json.dump({}, f)
+    with open("brands.json", "r+") as f:
         data = json.load(f)
         data[brand_domain] = channel_ids
+        f.seek(0)
         json.dump(data, f)
 
 
@@ -50,8 +60,8 @@ for num_epochs in [5, 10, 20, 30]:
 all_channel_ids = ratings["channel_id"].unique()
 all_brand_domains = ratings["brand_domain"].unique()
 
-for channel_id in all_channel_ids:
-    print("Channel:", channel_id)
+for channel_id, index in zip(all_channel_ids, range(len(all_channel_ids))):
+    print("Channel:", channel_id, index + 1, "/", len(all_channel_ids))
     channel_brands_not_seen = [
         (channel_id, brand)
         for brand in all_brand_domains
@@ -69,13 +79,13 @@ for channel_id in all_channel_ids:
     # Show the channel brands not seen and predicted ratings
     channel_brands_not_seen_df["pred_rating"] = preds
     channel_brands_not_seen_df.sort_values("pred_rating", ascending=False, inplace=True)
-    channel_brands_not_seen_df.head(10)
+    print(channel_brands_not_seen_df.head(10))
     add_to_channels_json(
         channel_id, channel_brands_not_seen_df["brand_domain"].head(10).tolist()
     )
 
-for brand_domain in all_brand_domains:
-    print("Brand:", brand_domain)
+for brand_domain, index in zip(all_brand_domains, range(len(all_brand_domains))):
+    print("Brand:", brand_domain, index + 1, "/", len(all_brand_domains))
     brand_channels_not_seen = [
         (channel, brand_domain)
         for channel in all_channel_ids
@@ -94,7 +104,7 @@ for brand_domain in all_brand_domains:
     # Show the brand channels not seen and predicted ratings
     brand_channels_not_seen_df["pred_rating"] = preds
     brand_channels_not_seen_df.sort_values("pred_rating", ascending=False, inplace=True)
-    brand_channels_not_seen_df.head(10)
+    print(brand_channels_not_seen_df.head(10))
     add_to_brands_json(
         brand_domain, brand_channels_not_seen_df["channel_id"].head(10).tolist()
     )
