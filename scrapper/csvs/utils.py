@@ -7,6 +7,7 @@ ignore_brand_domains = [
     "geni.us",
     "www.aliexpress.com",
     "discord.com",
+    "t.me",
 ]
 
 # Ignore domains that contain these words
@@ -27,3 +28,9 @@ def accept_domain(domain):
     if any(word in domain for word in ignore_words):
         return False
     return True
+
+
+# TODO: Charts
+# 1. youtuber with max #deals to country -- YouTuber may have noise deals
+# 2. brand with max #deals to country -- INTERESTING
+# 3. brand to youtuber with max #deals -- INTERESTING

@@ -8,4 +8,6 @@ error.txt
 parallel.py
 *_tmp.pth
 *.tsv
+*.csv
 *.sql
+*.dump

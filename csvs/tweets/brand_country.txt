@@ -1,0 +1,20 @@
+# Made manually from charts/results/brand_country.tsv, c_bd.tsv, _custom/tools/brand_videos.py
+sephora.com	US	263
+ozon.ru	RU	2
+gearberry.com	PL	8
+computervision.zone	PK	56
+store.nebula.tv	NZ	8
+notebooktherapy.com	NO	15
+datalumina.io	NL	14
+shopee.com.my	MY	22
+kr.iherb.com	KR	116
+jrpass.com	JP	141
+muscleblaze.com	IN	406
+wandb.ai	HU	30
+whokeys.com	GB	179
+pcbway.com	ES	68
+evannex.com	DK	72
+lolingo.de	DE	43
+sheathunderwear.com	CZ	8
+thelineshop.ca	CA	95
+blendermarket.com	AU	122
