@@ -21,5 +21,6 @@ echo "Uploading the db to supabase..."
 source .env
 pg_dump $OLD_DB_URL > database_dump.dump
 psql $NEW_DB_URL < database_dump.dump
+rm database_dump.dump
 
 echo "Done uploading the db to supabase"

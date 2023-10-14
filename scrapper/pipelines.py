@@ -7,7 +7,7 @@ from scrapper.scrape import scrape_new_channels, scrape_channels_videos
 from scrapper.details import get_videos_details
 from scrapper.filter import create_brand_deal_links
 from scrapper.validate import validate_brand_urls
-from scrapper.limits import TOTAL_CHANNELS_COUNT
+from scrapper.limits import TOTAL_CHANNELS_COUNT, COUNTRIES
 from scrapper.utils import print_exception
 
 
@@ -31,7 +31,9 @@ def get_channels_pipeline():
 def get_video_details_pipeline():
     print(f"{timezone.now()} Getting video details")
     channel_ids = list(
-        Channel.objects.filter(Q(status=Channel.FETCHED) | Q(status=Channel.PAUSED))
+        Channel.objects.filter(
+            Q(status=Channel.FETCHED) | Q(status=Channel.PAUSED), country__in=COUNTRIES
+        )
         .order_by("-updated_at")
         .values_list("channel_id", flat=True)
     )

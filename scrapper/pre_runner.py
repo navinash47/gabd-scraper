@@ -101,6 +101,10 @@ blacklist_domains = [
     "discord.gg",
     "discord.com",
     "www.discord.com",
+    "snapchat.com",
+    "www.snapchat.com",
+    "github.com",
+    "www.github.com",
 ]
 
 for domain in blacklist_domains:

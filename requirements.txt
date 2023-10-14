@@ -3,5 +3,4 @@ selenium==4.12.0
 python-dotenv==1.0.0
 backoff==2.2.1
 psycopg2-binary==2.9.7
-notebook==7.0.4
 fastai==2.7.12

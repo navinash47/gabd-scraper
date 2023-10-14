@@ -8,7 +8,8 @@ from django.utils import timezone
 
 from scrapper.models import Video, BrandDeal, BlackList
 from scrapper.utils import get_domain, print_exception
-from scrapper.limits import MAX_OPENAI_WORKERS, MAX_VIDEOS_PER_CHANNEL
+from scrapper.limits import MAX_OPENAI_WORKERS, MAX_VIDEOS_PER_CHANNEL, COUNTRIES
+from scrapper.csvs.utils import accept_domain
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
@@ -33,41 +34,53 @@ def on_backoff(details):
     print(f"{timezone.now()} Backing off {details['wait']} seconds")
 
 
-# 3,500 RPM - Paid users after 48 hours
-# https://platform.openai.com/docs/guides/rate-limits/overview
-@backoff.on_exception(backoff.expo, openai.error.RateLimitError, on_backoff=on_backoff)
+# # 3,500 RPM - Paid users after 48 hours
+# # https://platform.openai.com/docs/guides/rate-limits/overview
+# @backoff.on_exception(backoff.expo, openai.error.RateLimitError, on_backoff=on_backoff)
+# def extract_brand_deal_links(description):
+#     response = openai.ChatCompletion.create(
+#         model="gpt-3.5-turbo",
+#         messages=[
+#             {
+#                 "role": "system",
+#                 "content": system_prompt,
+#             },
+#             {
+#                 "role": "user",
+#                 "content": user_prompt.format(description=description),
+#             },
+#         ],
+#         temperature=1,
+#         max_tokens=1024,
+#         top_p=1,
+#         frequency_penalty=0,
+#         presence_penalty=0,
+#     )
+#     brand_deals_section = response.choices[0]["message"]["content"]
+#     # Extract urls from the section using regex
+#     urls = re.findall(r"(?P<url>https?://[^\s]+)", brand_deals_section) or [""]
+#     # Remove all "" strings
+#     urls = [url for url in urls if url]
+#     return urls
+
+
 def extract_brand_deal_links(description):
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {
-                "role": "system",
-                "content": system_prompt,
-            },
-            {
-                "role": "user",
-                "content": user_prompt.format(description=description),
-            },
-        ],
-        temperature=1,
-        max_tokens=1024,
-        top_p=1,
-        frequency_penalty=0,
-        presence_penalty=0,
-    )
-    brand_deals_section = response.choices[0]["message"]["content"]
-    # Extract urls from the section using regex
-    urls = re.findall(r"(?P<url>https?://[^\s]+)", brand_deals_section) or [""]
-    # Remove all "" strings
-    urls = [url for url in urls if url]
-    return urls
+    all_urls = re.findall(r"(?P<url>https?://[^\s]+)", description) or [""]
+    all_domains = [get_domain(url) for url in all_urls]
+
+    return_urls = []
+    for url, domain in zip(all_urls, all_domains):
+        if not accept_domain(domain):
+            continue
+        return_urls.append(url)
+
+    return return_urls
 
 
 def create_brand_deal_links():
     # Detailed videos which already don't have BrandDeal
     detailed_videos = Video.objects.filter(
-        status=Video.DETAILED,
-        brand_deals__isnull=True,
+        status=Video.DETAILED, brand_deals__isnull=True, channel__country__in=COUNTRIES
     ).order_by("-published_at")
 
     batches = [
